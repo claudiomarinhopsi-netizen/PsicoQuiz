@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Terapias Contextuais — Terceira Onda</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117; --surface: #181c27; --surface2: #1f2535; --border: #2a3045;
+    --accent: #4f8ef7; --accent2: #7c5cbf; --success: #3ecf8e; --error: #f75f5f;
+    --warning: #f7b955; --text: #e8eaf0; --text-dim: #8892a4; --text-dimmer: #4a5568;
+    --radius: 14px; --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-weight: 400; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px 60px; }
+  .module-header { width: 100%; max-width: 720px; margin-bottom: 32px; text-align: center; }
+  .module-tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); background: rgba(79,142,247,.12); border: 1px solid rgba(79,142,247,.25); border-radius: 20px; padding: 4px 14px; margin-bottom: 14px; }
+  .module-title { font-family: 'DM Serif Display', serif; font-size: clamp(28px, 6vw, 42px); line-height: 1.15; color: var(--text); margin-bottom: 8px; }
+  .module-title em { font-style: italic; color: var(--accent); }
+  .module-subtitle { font-size: 15px; color: var(--text-dim); font-weight: 300; }
+  #level-select { width: 100%; max-width: 720px; }
+  .levels-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
+  .level-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 18px 14px; cursor: pointer; transition: all .2s ease; text-align: center; position: relative; overflow: hidden; }
+  .level-card::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity .2s; }
+  .level-card.l1::before { background: linear-gradient(135deg, rgba(79,142,247,.08), transparent); }
+  .level-card.l2::before { background: linear-gradient(135deg, rgba(124,92,191,.08), transparent); }
+  .level-card.l3::before { background: linear-gradient(135deg, rgba(79,142,247,.08), transparent); }
+  .level-card.l4::before { background: linear-gradient(135deg, rgba(247,185,85,.08), transparent); }
+  .level-card.l5::before { background: linear-gradient(135deg, rgba(124,92,191,.08), transparent); }
+  .level-card.l6::before { background: linear-gradient(135deg, rgba(62,207,142,.08), transparent); }
+  .level-card:hover:not(.locked)::before { opacity: 1; }
+  .level-card:hover:not(.locked) { border-color: rgba(79,142,247,.4); transform: translateY(-2px); }
+  .level-card.locked { opacity: .4; cursor: not-allowed; }
+  .level-card.completed { border-color: var(--success); }
+  .level-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+  .level-name { font-family: 'DM Serif Display', serif; font-size: 15px; margin-bottom: 3px; }
+  .level-desc { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+  .level-status { margin-top: 8px; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  .level-status.done { color: var(--success); }
+  .level-status.locked-txt { color: var(--text-dimmer); }
+  .level-status.available { color: var(--accent); }
+  #quiz-screen { width: 100%; max-width: 720px; display: none; }
+  .quiz-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .back-btn { background: none; border: 1px solid var(--border); color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 6px 14px; border-radius: 20px; cursor: pointer; transition: all .2s; }
+  .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .quiz-level-badge { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); }
+  .progress-bar-wrap { background: var(--surface2); border-radius: 99px; height: 6px; width: 100%; margin-bottom: 28px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .4s ease; }
+  .question-counter { font-size: 12px; color: var(--text-dimmer); margin-bottom: 10px; text-align: right; }
+  .question-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 28px 24px; margin-bottom: 16px; }
+  .question-text { font-family: 'DM Serif Display', serif; font-size: clamp(16px, 3.5vw, 21px); line-height: 1.4; color: var(--text); }
+  .options-list { display: flex; flex-direction: column; gap: 10px; }
+  .option-btn { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px 18px; text-align: left; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: all .18s ease; display: flex; align-items: flex-start; gap: 12px; line-height: 1.45; }
+  .option-letter { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; min-width: 24px; border-radius: 6px; background: var(--surface2); font-size: 12px; font-weight: 600; color: var(--text-dim); transition: all .18s; }
+  .option-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(79,142,247,.06); }
+  .option-btn:hover:not(:disabled) .option-letter { background: var(--accent); color: #fff; }
+  .option-btn.correct { border-color: var(--success); background: rgba(62,207,142,.08); }
+  .option-btn.correct .option-letter { background: var(--success); color: #fff; }
+  .option-btn.wrong { border-color: var(--error); background: rgba(247,95,95,.08); }
+  .option-btn.wrong .option-letter { background: var(--error); color: #fff; }
+  .option-btn.reveal-correct { border-color: var(--success); background: rgba(62,207,142,.05); opacity: .7; }
+  .option-btn:disabled { cursor: default; }
+  .feedback-box { border-radius: var(--radius-sm); padding: 16px 18px; margin-bottom: 16px; font-size: 14px; line-height: 1.6; display: none; animation: slideUp .25s ease; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .feedback-box.correct { background: rgba(62,207,142,.1); border: 1px solid rgba(62,207,142,.3); color: #a8f0cf; }
+  .feedback-box.wrong { background: rgba(247,95,95,.1); border: 1px solid rgba(247,95,95,.3); color: #ffa8a8; }
+  .feedback-label { font-weight: 600; font-size: 13px; letter-spacing: .04em; margin-bottom: 5px; text-transform: uppercase; }
+  .feedback-norm { display: block; margin-top: 8px; font-size: 12px; color: var(--text-dim); font-style: italic; }
+  .next-btn { width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; border-radius: var(--radius-sm); color: #fff; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; padding: 15px; cursor: pointer; transition: opacity .2s, transform .2s; display: none; }
+  .next-btn:hover { opacity: .9; transform: translateY(-1px); }
+  #result-screen { width: 100%; max-width: 720px; display: none; text-align: center; }
+  .result-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 40px 28px; }
+  .result-emoji { font-size: 52px; margin-bottom: 16px; display: block; }
+  .result-title { font-family: 'DM Serif Display', serif; font-size: 28px; margin-bottom: 8px; }
+  .result-score { font-size: 48px; font-weight: 600; color: var(--accent); margin: 16px 0 4px; }
+  .result-score-label { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; }
+  .result-message { font-size: 15px; color: var(--text-dim); line-height: 1.6; margin-bottom: 28px; max-width: 460px; margin-left: auto; margin-right: auto; }
+  .result-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn-outline { background: none; border: 1.5px solid var(--border); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; padding: 12px 22px; border-radius: var(--radius-sm); cursor: pointer; transition: all .2s; }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; padding: 12px 22px; border-radius: var(--radius-sm); cursor: pointer; }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+  #completion-banner { width: 100%; max-width: 720px; display: none; background: linear-gradient(135deg, rgba(62,207,142,.12), rgba(79,142,247,.08)); border: 1.5px solid rgba(62,207,142,.3); border-radius: var(--radius); padding: 24px; text-align: center; margin-top: 20px; }
+  #completion-banner h3 { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 8px; color: var(--success); }
+  #completion-banner p { font-size: 14px; color: var(--text-dim); }
+  @media (max-width: 520px) { .levels-grid { grid-template-columns: repeat(2, 1fr); } .question-card { padding: 20px 16px; } .option-btn { padding: 12px 14px; font-size: 13px; } }
+</style>
+</head>
+<body>
+
+<header class="module-header">
+  <div class="module-tag">Módulo 08 · Abordagens</div>
+  <h1 class="module-title">Terapias <em>Contextuais</em></h1>
+  <p class="module-subtitle">A terceira onda: ACT · DBT · FAP · CFT · MBCT</p>
+</header>
+
+<div id="level-select">
+  <div class="levels-grid">
+    <div class="level-card l1" id="card-1" onclick="startLevel(1)">
+      <span class="level-icon">🌱</span>
+      <div class="level-name">Nível 1</div>
+      <div class="level-desc">Fundamentos da terceira onda</div>
+      <div class="level-status available" id="status-1">Disponível</div>
+    </div>
+    <div class="level-card l2 locked" id="card-2">
+      <span class="level-icon">🧭</span>
+      <div class="level-name">Nível 2</div>
+      <div class="level-desc">ACT — Terapia de Aceitação e Compromisso</div>
+      <div class="level-status locked-txt" id="status-2">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l3 locked" id="card-3">
+      <span class="level-icon">🌊</span>
+      <div class="level-name">Nível 3</div>
+      <div class="level-desc">DBT — Terapia Comportamental Dialética</div>
+      <div class="level-status locked-txt" id="status-3">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l4 locked" id="card-4">
+      <span class="level-icon">🤝</span>
+      <div class="level-name">Nível 4</div>
+      <div class="level-desc">FAP — Psicoterapia Analítica Funcional</div>
+      <div class="level-status locked-txt" id="status-4">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l5 locked" id="card-5">
+      <span class="level-icon">💗</span>
+      <div class="level-name">Nível 5</div>
+      <div class="level-desc">CFT e MBCT — compaixão e mindfulness</div>
+      <div class="level-status locked-txt" id="status-5">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l6 locked" id="card-6">
+      <span class="level-icon">🧩</span>
+      <div class="level-name">Nível 6</div>
+      <div class="level-desc">Síntese e diferenciação</div>
+      <div class="level-status locked-txt" id="status-6">🔒 Bloqueado</div>
+    </div>
+  </div>
+
+  <div id="completion-banner">
+    <h3>🎓 Módulo Concluído!</h3>
+    <p>Você percorreu os 6 níveis das Terapias Contextuais — dos fundamentos da terceira onda à diferenciação clínica entre ACT, DBT, FAP, CFT e MBCT.</p>
+  </div>
+</div>
+
+<div id="quiz-screen">
+  <div class="quiz-top">
+    <button class="back-btn" onclick="backToMenu()">← Voltar</button>
+    <span class="quiz-level-badge" id="quiz-level-label">Nível 1</span>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+  <div class="question-counter" id="question-counter">Pergunta 1 de 10</div>
+  <div class="question-card">
+    <p class="question-text" id="question-text"></p>
+  </div>
+  <div class="options-list" id="options-list"></div>
+  <div class="feedback-box" id="feedback-box">
+    <div class="feedback-label" id="feedback-label"></div>
+    <div id="feedback-text"></div>
+  </div>
+  <button class="next-btn" id="next-btn" onclick="nextQuestion()">Próxima pergunta →</button>
+</div>
+
+<div id="result-screen">
+  <div class="result-card">
+    <span class="result-emoji" id="result-emoji"></span>
+    <div class="result-title" id="result-title"></div>
+    <div class="result-score" id="result-score"></div>
+    <div class="result-score-label" id="result-score-label"></div>
+    <p class="result-message" id="result-message"></p>
+    <div class="result-actions">
+      <button class="btn-outline" onclick="retryLevel()">Tentar novamente</button>
+      <button class="btn-primary" id="next-level-btn" onclick="goNextLevel()">Próximo nível →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PASS = 80;
+const LEVELS = {
+  1: {
+    label: "Nível 1 — Fundamentos da terceira onda",
+    questions: [
+      { q: "O que caracteriza as terapias contextuais (terceira onda)?",
+        opts: ["O foco em eliminar pensamentos disfuncionais por reestruturação","A interpretação de conteúdos inconscientes recalcados","A ênfase no contexto e na função dos eventos psicológicos (pensamentos, emoções), não apenas na sua forma ou conteúdo","A busca por reduzir a frequência dos sintomas como único critério de sucesso"],
+        correct: 2,
+        feedback: "As contextuais focam em mudar a função e o contexto dos eventos privados — a relação da pessoa com o que pensa/sente — em vez de alterar o conteúdo. A é a quase-certa: descreve a TCC tradicional. B é psicanálise; D reduz a meta a um critério que as contextuais justamente relativizam.",
+        norm: "Hayes (2004); terapias contextuais" },
+      { q: "A principal diferença entre a TCC tradicional (segunda onda) e as terapias contextuais (terceira onda) é que:",
+        opts: ["A terceira onda abandona qualquer base comportamental","A TCC busca modificar o conteúdo dos pensamentos; as contextuais buscam mudar a relação e a função desses pensamentos, sem necessariamente alterar seu conteúdo","A TCC não usa técnicas comportamentais, e as contextuais sim","As duas são idênticas, mudando apenas o nome"],
+        correct: 1,
+        feedback: "A segunda onda trabalha o conteúdo/validade do pensamento (reestruturação); a terceira muda a relação funcional com ele (aceitação, desfusão), sem precisar refutá-lo. A é falsa (a terceira onda expande, não abandona o comportamental); C inverte; D ignora a diferença real.",
+        norm: "Hayes (2004)" },
+      { q: "São abordagens que compõem a terceira onda (terapias contextuais):",
+        opts: ["Psicanálise, Gestalt e ACT","TCC de Beck, Terapia do Esquema e Rogers","Apenas a ACT","ACT, DBT, FAP e terapias baseadas em mindfulness e aceitação (como a MBCT)"],
+        correct: 3,
+        feedback: "A família contextual reúne ACT, DBT, FAP e abordagens baseadas em mindfulness/aceitação. A mistura outras tradições (psicanálise, Gestalt); B inclui a TCC de Beck (segunda onda) e Rogers (humanista); C reduz a família a uma só.",
+        norm: "terapias contextuais (terceira onda)" },
+      { q: "A Teoria das Molduras Relacionais (RFT) é:",
+        opts: ["Uma teoria comportamental sobre a linguagem e a cognição humana, que serve de base para a ACT","Uma técnica de relaxamento muscular","Um teste psicológico de personalidade","Um modelo psicanalítico do inconsciente"],
+        correct: 0,
+        feedback: "A RFT é uma teoria comportamental da linguagem e cognição — explica como pensamentos e palavras adquirem função pelo enquadramento relacional — e fundamenta a ACT. Não é técnica de relaxamento, teste nem modelo psicanalítico.",
+        norm: "RFT; ACT" },
+      { q: "Entre os processos enfatizados pelas terapias contextuais estão:",
+        opts: ["Reestruturação cognitiva e supressão de pensamentos","Associação livre e interpretação dos sonhos","Aceitação, mindfulness (atenção plena) e clareza de valores","Condicionamento aversivo e punição"],
+        correct: 2,
+        feedback: "Aceitação, mindfulness e valores são marcas comuns das contextuais. A é a quase-certa — reestruturação e supressão são da TCC tradicional; B é psicanálise; D é técnica comportamental clássica que não define a família.",
+        norm: "terapias contextuais" },
+      { q: "Na história das terapias comportamentais e cognitivas, a sequência das \"três ondas\" é:",
+        opts: ["Cognitiva → comportamental → contextual","Comportamental → cognitiva → contextual","Contextual → comportamental → cognitiva","Humanista → comportamental → cognitiva"],
+        correct: 1,
+        feedback: "A primeira onda foi comportamental (condicionamento), a segunda cognitiva (TCC) e a terceira contextual (ACT, DBT etc.). A e C trocam a ordem; D insere o humanismo, que é outra tradição.",
+        norm: "história das TCCs" },
+      { q: "Um terapeuta contextual, diante do pensamento \"sou um fracasso\", tende a:",
+        opts: ["Ajudar a pessoa a mudar a relação com esse pensamento (observá-lo sem se fundir a ele), em vez de tentar prová-lo falso","Listar evidências contra o pensamento até a pessoa concluir que ele é irracional","Investigar a origem inconsciente do pensamento na infância","Ignorar o pensamento e mudar de assunto"],
+        correct: 0,
+        feedback: "A abordagem contextual muda a função do pensamento — a pessoa aprende a notá-lo sem ser governada por ele. B é a quase-certa: é a reestruturação da TCC (mudar conteúdo/validade). C é psicanálise; D não é intervenção contextual.",
+        norm: "terapias contextuais (ACT)" },
+      { q: "Nas terapias contextuais, \"aceitação\" significa:",
+        opts: ["Concordar com tudo o que se sente e desistir de agir","Gostar do sofrimento","Eliminar as emoções negativas","Abrir-se ao que não se pode controlar, deixando de lutar contra a experiência interna para poder agir em direção aos valores"],
+        correct: 3,
+        feedback: "Aceitação é abertura ativa ao desconforto para que ele não dite o comportamento — não é resignação, gostar de sofrer nem eliminar emoções (o oposto da proposta).",
+        norm: "terapias contextuais (ACT)" },
+      { q: "Sobre a base teórica da terceira onda, é correto afirmar que:",
+        opts: ["Rompe completamente com o behaviorismo e adota a psicanálise","Abandona a pesquisa empírica em favor da intuição clínica","Mantém a base empírica e comportamental, ampliando-a com contexto, função, aceitação e mindfulness","Restringe-se a técnicas de meditação, sem teoria comportamental"],
+        correct: 2,
+        feedback: "A terceira onda expande o comportamentalismo — não o abandona —, somando contexto, função, aceitação e mindfulness, com base empírica. A e D negam essa raiz comportamental; B contraria o caráter empírico (a definição de Hayes é explicitamente empírica).",
+        norm: "Hayes (2004)" },
+      { q: "Qual situação ilustra uma intervenção tipicamente contextual (e não da TCC tradicional)?",
+        opts: ["Ajudar o paciente a seguir agindo conforme seus valores mesmo sentindo ansiedade, sem precisar eliminá-la antes","Treinar o paciente a substituir cada pensamento negativo por um positivo","Questionar as evidências de uma crença até refutá-la","Interpretar o significado oculto de um lapso de linguagem"],
+        correct: 0,
+        feedback: "Agir conforme valores convivendo com o desconforto (sem removê-lo) é a marca contextual. B e C são quase-certas — descrevem a TCC tradicional (mudar/refutar conteúdo); D é psicanálise.",
+        norm: "terapias contextuais" }
+    ]
+  },
+  2: {
+    label: "Nível 2 — ACT (Terapia de Aceitação e Compromisso)",
+    questions: [
+      { q: "Seu paciente chega à sessão dizendo: 'Não consigo parar de pensar que sou um fracasso total.' A resposta mais alinhada à ACT seria:",
+        opts: ["Questionar as evidências desse pensamento até ele perceber que não é verdade","Pedir para ele fechar os olhos e imaginar um lugar seguro onde esse pensamento não existe","Ajudá-lo a observar esse pensamento como um evento mental passageiro, sem precisar acreditar ou lutar contra ele","Concordar parcialmente para criar aliança terapêutica e depois refutar"],
+        correct: 2,
+        feedback: "Na ACT, o objetivo não é eliminar ou refutar o pensamento — é mudar a relação do paciente com ele. 'Sou um fracasso' vira 'Estou tendo o pensamento de que sou um fracasso.' Essa é a defusão cognitiva: o pensamento perde o poder sem precisar sumir.",
+        norm: "ACT — defusão cognitiva" },
+      { q: "O conceito de 'flexibilidade psicológica' na ACT pode ser definido como:",
+        opts: ["Entrar em contato com o momento presente e agir de acordo com os próprios valores, mesmo na presença de pensamentos e emoções difíceis","A capacidade de suprimir pensamentos negativos com eficiência crescente","A habilidade de adaptar crenças nucleares conforme o contexto muda","O estado de ausência de sofrimento emocional após a terapia"],
+        correct: 0,
+        feedback: "Flexibilidade psicológica é o conceito central da ACT. Não é sobre se sentir bem — é sobre conseguir agir de forma valorosa mesmo quando a mente e o corpo estão gerando desconforto. É o oposto da rigidez psicológica, que faz a pessoa organizar a vida inteira em torno de evitar o que é difícil.",
+        norm: "ACT — flexibilidade psicológica" },
+      { q: "Na ACT, 'fusão cognitiva' ocorre quando:",
+        opts: ["O terapeuta e o paciente chegam a um consenso sobre as crenças nucleares","O paciente literalmente acredita ser seus pensamentos — como se a mente fosse um noticiário ao vivo transmitindo a verdade absoluta","Duas técnicas cognitivas são aplicadas simultaneamente na mesma sessão","O paciente integra perspectivas de diferentes abordagens terapêuticas"],
+        correct: 1,
+        feedback: "Fusão cognitiva é quando o paciente se cola ao conteúdo dos pensamentos e os trata como fatos literais. 'Sou burro' vira verdade, não pensamento. A metáfora do noticiário ao vivo é útil aqui — a mente não para de transmitir, mas a gente não precisa acreditar em tudo que passa.",
+        norm: "ACT — fusão cognitiva" },
+      { q: "Os seis processos centrais da ACT formam o que Hayes chama de 'Hexaflex'. Qual dos itens abaixo NÃO é um desses processos?",
+        opts: ["Aceitação","Defusão cognitiva","Ação comprometida","Reestruturação cognitiva"],
+        correct: 3,
+        feedback: "Reestruturação cognitiva é uma técnica da TCC tradicional — não da ACT. Os seis processos do Hexaflex são: aceitação, defusão cognitiva, contato com o momento presente, self como contexto, valores e ação comprometida. A ACT não busca mudar o conteúdo dos pensamentos, por isso a reestruturação cognitiva não faz parte do modelo.",
+        norm: "ACT — Hexaflex" },
+      { q: "A famosa 'Metáfora do Ônibus' na ACT ilustra:",
+        opts: ["A importância do terapeuta conduzir a sessão com direção clara","A ideia de que todos os pensamentos têm o mesmo peso e devem ser tratados igualmente","O paciente como motorista de sua própria vida, que pode seguir seus valores mesmo com passageiros barulhentos (pensamentos e emoções) dentro do ônibus","A necessidade de o paciente aprender a desembarcar de situações emocionalmente difíceis"],
+        correct: 2,
+        feedback: "Na metáfora do ônibus, o paciente é o motorista e os pensamentos/emoções difíceis são passageiros que gritam, ameaçam e tentam tomar o volante. A ACT propõe que o motorista pode continuar dirigindo na direção dos seus valores sem precisar expulsar os passageiros ou fazer o que eles mandam.",
+        norm: "ACT — metáforas" },
+      { q: "A principal diferença entre aceitação na ACT e resignação passiva é:",
+        opts: ["Aceitação na ACT é um ato ativo de abertura ao que não pode ser controlado, mantendo o movimento em direção a valores","Não existe diferença real — aceitação é sempre uma forma de resignação","Resignação é recomendada para sintomas físicos; aceitação para sintomas emocionais","Aceitação na ACT envolve necessariamente aprovação do que está sendo aceito"],
+        correct: 0,
+        feedback: "Aceitação na ACT não é 'tudo bem, vou ficar assim'. É abertura ativa ao desconforto para que ele não precise mais ditar o comportamento. A pessoa aceita a ansiedade, mas segue em direção ao que importa. Resignação é desistir. Aceitação é continuar, com o desconforto no banco de trás.",
+        norm: "ACT — aceitação" },
+      { q: "Um paciente descreve sua relação com a ansiedade assim: 'Faço tudo para não sentir. Evito situações, não saio, fico em casa, recuso convites.' Na linguagem da ACT, esse padrão se chama:",
+        opts: ["Defusão adaptativa","Mindfulness situacional","Regulação emocional avançada","Evitação experiencial — e é exatamente o que a ACT trata como o problema central"],
+        correct: 3,
+        feedback: "Evitação experiencial é o padrão de tentar controlar, suprimir ou escapar de experiências internas (pensamentos, emoções, sensações) mesmo quando isso reduz a qualidade de vida. Para a ACT, não é a ansiedade o problema — é a guerra que o paciente trava contra ela. E guerras de supressão raramente terminam bem.",
+        norm: "ACT — evitação experiencial" },
+      { q: "O 'self como contexto' na ACT se diferencia do 'self como conteúdo' porque:",
+        opts: ["O self como contexto é construído socialmente; o self como conteúdo é inato","No self como contexto, a pessoa se identifica com o observador dos pensamentos, não com os pensamentos em si","O self como contexto é trabalhado apenas nas fases finais da terapia","Self como contexto refere-se à identidade profissional do paciente"],
+        correct: 1,
+        feedback: "Self como conteúdo é quando a pessoa se define pelos próprios pensamentos ('Sou ansioso', 'Sou fracassado'). Self como contexto é a perspectiva do observador — o 'eu' que percebe os pensamentos sem ser reduzido a eles. É a parte que permanece estável mesmo quando os pensamentos mudam. Uma das percepções mais libertadoras da ACT.",
+        norm: "ACT — self como contexto" },
+      { q: "Um estudante de psicologia, após ler sobre ACT, conclui: 'Então a ACT é basicamente mindfulness + valores. É igual ao budismo com nome científico.' Essa afirmação é:",
+        opts: ["Parcialmente verdadeira: a ACT tem influências budistas, mas está fundamentada em uma teoria comportamental da linguagem (RFT) com base empírica própria","Totalmente correta — Hayes admitiu que é uma releitura do budismo","Completamente equivocada — a ACT não tem qualquer relação com práticas contemplativas","Verdadeira apenas para a terceira geração da ACT"],
+        correct: 0,
+        feedback: "Essa confusão é comum e compreensível. A ACT tem sim convergências com práticas budistas — especialmente no mindfulness e na noção de sofrimento causado pelo apego. Mas sua fundamentação é a Teoria das Molduras Relacionais, uma teoria comportamental da cognição com décadas de pesquisa. É oriental na filosofia, ocidental na estrutura.",
+        norm: "ACT — RFT" },
+      { q: "Ao final de um processo em ACT bem-sucedido, o paciente ideal seria aquele que:",
+        opts: ["Não sente mais ansiedade nem pensamentos negativos sobre si mesmo","Consegue identificar e eliminar rapidamente qualquer pensamento disfuncional","Age de acordo com seus valores mesmo quando a mente gera desconforto — e sabe que o desconforto não é o inimigo","Atingiu o estado permanente de mindfulness e presença plena"],
+        correct: 2,
+        feedback: "O critério de sucesso na ACT não é a ausência de sofrimento — é a presença de vida valorosa apesar dele. Um paciente que termina a ACT ainda vai ter pensamentos difíceis, ainda vai sentir ansiedade. A diferença é que esses eventos internos não governam mais o comportamento dele. É liberdade com o desconforto, não liberdade do desconforto.",
+        norm: "ACT — objetivos terapêuticos" }
+    ]
+  },
+  3: {
+    label: "Nível 3 — DBT (Terapia Comportamental Dialética)",
+    questions: [
+      { q: "A DBT foi desenvolvida por Marsha Linehan, tendo como foco original:",
+        opts: ["A prevenção de recaída na depressão recorrente","O autocriticismo e a vergonha persistentes","O transtorno de personalidade borderline e os comportamentos suicidas/autolesivos crônicos","Os déficits de repertório que aparecem na relação terapêutica"],
+        correct: 2,
+        feedback: "A DBT nasceu para o TPB e o risco suicida/autolesivo crônico. A é o foco da MBCT; B, da CFT; D, da FAP — todas contextuais, com alvos diferentes. Agora é preciso discriminar entre elas.",
+        norm: "Linehan; DBT" },
+      { q: "A dialética central da DBT, que dá nome à abordagem, é a tensão entre:",
+        opts: ["Consciente e inconsciente","Aceitação e mudança — validar a pessoa como ela é e, ao mesmo tempo, trabalhar para que mude","Reforço e punição","Passado e presente"],
+        correct: 1,
+        feedback: "O coração da DBT é a síntese entre aceitar/validar o paciente e promover mudança ('você está fazendo o melhor que pode E precisa fazer melhor'). As outras duplas não são a dialética central.",
+        norm: "Linehan; DBT" },
+      { q: "Os quatro módulos de habilidades treinados na DBT são:",
+        opts: ["Mindfulness, reestruturação cognitiva, regulação emocional e exposição","Aceitação, defusão, valores e ação comprometida","Mindfulness, regulação emocional, tolerância ao mal-estar e reestruturação cognitiva","Mindfulness, regulação emocional, tolerância ao mal-estar e efetividade interpessoal"],
+        correct: 3,
+        feedback: "Os quatro módulos são mindfulness, regulação emocional, tolerância ao mal-estar e efetividade interpessoal. C é a quase-gêmea — troca só o último por 'reestruturação cognitiva' (que é da TCC). A mistura técnicas; B lista o hexaflex da ACT.",
+        norm: "Linehan; DBT" },
+      { q: "Na DBT, a validação consiste em:",
+        opts: ["Reconhecer e comunicar que a experiência e as emoções do paciente fazem sentido em seu contexto, sem abrir mão de buscar mudança","Concordar que o paciente está sempre certo e não propor mudanças","Aprovar todos os comportamentos do paciente, inclusive os de risco","Adiar qualquer intervenção até o paciente se sentir bem"],
+        correct: 0,
+        feedback: "Validar é acolher a experiência como compreensível — sem renunciar à mudança (a outra ponta da dialética). B é a dúbia: parece validação, mas vira concordância passiva. C e D distorcem o conceito.",
+        norm: "Linehan; DBT" },
+      { q: "O módulo de tolerância ao mal-estar (distress tolerance) na DBT visa:",
+        opts: ["Eliminar definitivamente as emoções intensas","Identificar e refutar pensamentos distorcidos","Atravessar momentos de crise sem agir de forma impulsiva ou destrutiva, suportando o sofrimento que não pode ser mudado de imediato","Aumentar a frequência de atividades prazerosas"],
+        correct: 2,
+        feedback: "Tolerância ao mal-estar = sobreviver à crise sem piorá-la (sem impulsividade/autolesão), aceitando o que não dá para mudar naquele momento. A promete eliminação (irreal); B é reestruturação (TCC); D descreve ativação comportamental.",
+        norm: "Linehan; DBT" },
+      { q: "O módulo de regulação emocional na DBT difere do de tolerância ao mal-estar porque:",
+        opts: ["São o mesmo módulo com nomes diferentes","A regulação emocional foca em compreender e modular as emoções ao longo do tempo; a tolerância ao mal-estar foca em sobreviver à crise aguda sem piorá-la","A regulação emocional foca em sobreviver à crise; a tolerância ao mal-estar, em modular emoções no longo prazo","Apenas a regulação emocional usa mindfulness"],
+        correct: 1,
+        feedback: "Regular emoções (entender, reduzir vulnerabilidade, mudar respostas) é diferente de tolerar a crise aguda. C é a inversão exata de B (troca as funções). A nega a distinção; D é falso.",
+        norm: "Linehan; DBT" },
+      { q: "O formato clássico do tratamento completo em DBT inclui:",
+        opts: ["Terapia individual somada a grupo de treino de habilidades (além de recursos como coaching e equipe de consultoria)","Apenas sessões individuais","Apenas grupo de habilidades","Apenas atendimento em crise"],
+        correct: 0,
+        feedback: "A DBT padrão combina terapia individual + grupo de treino de habilidades (com coaching telefônico e equipe de consultoria ao terapeuta). As demais reduzem o modelo a uma só parte.",
+        norm: "Linehan; DBT" },
+      { q: "A análise em cadeia (chain analysis), na DBT, serve para:",
+        opts: ["Treinar habilidades de efetividade interpessoal em grupo","Validar a experiência emocional do paciente, sem buscar mudança","Praticar a aceitação radical de eventos passados","Detalhar passo a passo a sequência de eventos, pensamentos, emoções e ações que levaram a um comportamento-problema, para entender sua função"],
+        correct: 3,
+        feedback: "A análise em cadeia mapeia a sequência (gatilho, vulnerabilidades, elos, comportamento, consequências) que culmina no comportamento-alvo, para entender sua função. A, B e C são componentes reais da DBT (habilidades, validação, aceitação radical), mas nenhum é a função da análise em cadeia.",
+        norm: "Linehan; DBT" },
+      { q: "A 'aceitação radical' trabalhada na DBT significa:",
+        opts: ["Gostar da realidade dolorosa e aprová-la","Concordar que nada pode mudar","Aceitar plenamente a realidade como ela é (em vez de lutar contra o que não se pode mudar), reduzindo o sofrimento adicional gerado pela recusa","Esquecer o que aconteceu"],
+        correct: 2,
+        feedback: "Aceitação radical é parar de lutar contra a realidade que não se pode mudar — o que reduz o sofrimento secundário. A é a dúbia: aceitar não é gostar nem aprovar. B vira resignação; D é evitação.",
+        norm: "Linehan; DBT" },
+      { q: "Uma paciente com TPB faz automutilação para regular emoções intensas. Na DBT, a resposta mais adequada é:",
+        opts: ["Fazer a análise em cadeia do episódio, validar o sofrimento e treinar habilidades alternativas de tolerância ao mal-estar e regulação emocional","Validar o sofrimento e aguardar que o comportamento cesse por conta própria","Confrontar a paciente sobre as consequências para gerar medo","Suspender a terapia até a paciente parar de se automutilar"],
+        correct: 0,
+        feedback: "A DBT analisa a função do comportamento, valida E ensina habilidades alternativas. B é a dúbia — acerta a validação, mas para aí, sem a parte de mudança/habilidades. C e D aumentam o risco de abandono.",
+        norm: "Linehan; DBT" }
+    ]
+  },
+  4: {
+    label: "Nível 4 — FAP (Psicoterapia Analítica Funcional)",
+    questions: [
+      { q: "A FAP, de Kohlenberg e Tsai, distingue-se das demais terapias de terceira onda principalmente por:",
+        opts: ["O treino de habilidades em grupo para uso posterior fora da sessão","A prática de mindfulness para descentrar-se dos pensamentos","Usar a relação terapêutica como contexto de mudança, reforçando naturalmente os comportamentos-alvo que surgem no aqui e agora da sessão","O esclarecimento de valores e a desfusão diante de pensamentos difíceis"],
+        correct: 2,
+        feedback: "A marca da FAP é tratar a própria relação terapêutica, em tempo real, como o palco da mudança: o terapeuta reforça naturalmente os comportamentos de melhora que emergem na sessão. A remete à DBT (treino em grupo); B, à MBCT (mindfulness); D, à ACT (valores/desfusão) — todas contextuais, com foco diferente.",
+        norm: "Kohlenberg & Tsai; FAP" },
+      { q: "Na FAP, os 'comportamentos clinicamente relevantes' (CRBs) são:",
+        opts: ["Comportamentos do cliente que ocorrem dentro da sessão e que têm a mesma função dos seus problemas da vida cotidiana","Apenas os comportamentos que o cliente relata ter tido fora da sessão","Os escores obtidos em testes psicológicos","Pensamentos automáticos registrados em tarefa de casa"],
+        correct: 0,
+        feedback: "CRBs aparecem NA sessão e são funcionalmente equivalentes aos problemas da vida do cliente — por isso a sessão vira laboratório. B é a dúbia: os de fora são os 'Os', não os CRBs. C e D são de outras abordagens.",
+        norm: "Kohlenberg & Tsai; FAP" },
+      { q: "Os CRB1, na FAP, são:",
+        opts: ["Comportamentos de melhora que ocorrem na sessão","Interpretações que o cliente faz do próprio comportamento","Comportamentos que ocorrem só fora da terapia","Comportamentos-problema do cliente que ocorrem na sessão e que se espera que diminuam ao longo da terapia"],
+        correct: 3,
+        feedback: "CRB1 = os problemas do cliente manifestos em sessão (muitas vezes esquivas), que devem diminuir. A descreve o CRB2 (a dúbia, por inversão); B é o CRB3; C confunde com os comportamentos extrassessão.",
+        norm: "Kohlenberg & Tsai; FAP" },
+      { q: "Os CRB2, na FAP, são:",
+        opts: ["Comportamentos-problema que devem diminuir","Comportamentos de melhora/progresso do cliente que surgem na sessão e que devem ser reforçados para aumentar de frequência","Explicações que o cliente faz sobre seu comportamento","Comportamentos do terapeuta"],
+        correct: 1,
+        feedback: "CRB2 = os avanços do cliente em sessão, que o terapeuta reforça para que aumentem. A é a inversão (é o CRB1 — dúbia); C é o CRB3; D foge do conceito (CRB é do cliente).",
+        norm: "Kohlenberg & Tsai; FAP" },
+      { q: "Os CRB3, na FAP, referem-se a:",
+        opts: ["Comportamentos-problema em sessão","Comportamentos de melhora em sessão","Descrições/interpretações que o próprio cliente faz sobre seu comportamento e suas relações funcionais (causas e efeitos)","Reforçadores farmacológicos"],
+        correct: 2,
+        feedback: "CRB3 = o cliente interpreta o próprio comportamento, identificando antecedentes e consequências (faz análise funcional de si). A e B são CRB1 e CRB2; D não é CRB.",
+        norm: "Kohlenberg & Tsai; FAP" },
+      { q: "Um traço distintivo da FAP é que o reforço dado pelo terapeuta ao CRB2 deve ser, preferencialmente:",
+        opts: ["Natural — uma resposta genuína do terapeuta, semelhante ao que o comportamento produziria em relações reais","Arbitrário, como dar pontos ou fichas a cada acerto","Adiado para o fim do tratamento","Inexistente, pois a FAP não usa reforço"],
+        correct: 0,
+        feedback: "A FAP valoriza o reforço natural e contingente, no momento, parecido com o efeito que o comportamento teria fora dali. B é a dúbia (reforço arbitrário/fichas é de outra lógica); C e D contrariam o cerne da FAP.",
+        norm: "Kohlenberg & Tsai; FAP" },
+      { q: "Diferentemente de abordagens contextuais que trabalham sobretudo com exercícios estruturados ou com relatos do cotidiano, a FAP privilegia:",
+        opts: ["O treino de habilidades em grupo para uso posterior fora da sessão","A prática de mindfulness para descentrar-se dos pensamentos","O esclarecimento de valores e a desfusão diante de pensamentos difíceis","O comportamento que emerge no aqui e agora da própria relação terapêutica, usado como contexto direto de mudança"],
+        correct: 3,
+        feedback: "A FAP foca no que ocorre na própria relação, em tempo real (CRBs). A remete à DBT (treino em grupo); B, à MBCT (mindfulness); C, à ACT (valores/desfusão) — todas contextuais, mas com foco diferente do da FAP.",
+        norm: "Kohlenberg & Tsai; FAP" },
+      { q: "Dizer que a FAP é uma abordagem 'idiográfica' significa que ela:",
+        opts: ["Usa o mesmo alvo terapêutico padronizado para todos os clientes","Constrói uma formulação única para cada cliente, focando na função do comportamento, não na sua forma","Classifica os clientes em categorias diagnósticas fixas","Mede traços por normas populacionais"],
+        correct: 1,
+        feedback: "Idiográfica = sob medida; o foco é a função (o que o comportamento faz), não a forma aparente. A é a dúbia (descreve o oposto, nomotético/padronizado); C e D são abordagens normativas/categoriais.",
+        norm: "FAP" },
+      { q: "Entre as 'regras' que orientam o terapeuta FAP estão observar e evocar CRBs e, em seguida:",
+        opts: ["Reforçar naturalmente os CRB2 e avaliar o efeito do próprio responder sobre o cliente, promovendo a generalização para fora da sessão","Reforçar os CRB1, para que o cliente se sinta acolhido em seus padrões habituais","Aguardar os CRBs ocorrerem fora da sessão para então interpretá-los na sessão seguinte","Substituir o reforço natural por elogios padronizados a cada resposta do cliente"],
+        correct: 0,
+        feedback: "As regras incluem observar, evocar, reforçar o CRB2, avaliar o próprio responder e interpretar para generalizar. B inverte (reforça o problema, não a melhora); C contraria o foco no aqui e agora; D troca o reforço natural pelo arbitrário — erros plausíveis dentro da própria FAP.",
+        norm: "Kohlenberg & Tsai; FAP" },
+      { q: "Um cliente que costuma se calar e evitar falar de sentimentos consegue, em sessão, expressar o que sente ao terapeuta. Na FAP, esse momento é:",
+        opts: ["Um CRB1 a ser reduzido","Irrelevante, por ocorrer dentro da sessão","Um CRB2 — uma melhora em sessão — que o terapeuta deve reforçar naturalmente","Um teste psicológico"],
+        correct: 2,
+        feedback: "Expressar sentimentos (quando o problema era se calar) é um CRB2, a ser reforçado de forma natural e imediata. A inverte (seria CRB1 o silêncio); B é a dúbia que ignora justamente o que a FAP mais valoriza; D não se aplica.",
+        norm: "Kohlenberg & Tsai; FAP" }
+    ]
+  },
+  5: {
+    label: "Nível 5 — CFT e MBCT (compaixão e mindfulness)",
+    questions: [
+      { q: "A Terapia Focada na Compaixão (CFT), de Paul Gilbert, baseia-se na ideia de que as emoções são reguladas por:",
+        opts: ["Um sistema único de recompensa, que aprende por reforço e punição","Três sistemas de regulação emocional — ameaça, busca/realização (incentivo) e segurança/contentamento","Dois sistemas opostos: o de aproximação e o de evitação","Um sistema de ativação e um de inibição comportamental"],
+        correct: 1,
+        feedback: "A CFT trabalha com três sistemas — ameaça, busca/realização e segurança/contentamento. A, C e D são modelos motivacionais/comportamentais reais (recompensa, aproximação-evitação, ativação-inibição), mas nenhum é o modelo de três sistemas de Gilbert.",
+        norm: "Gilbert; CFT" },
+      { q: "No modelo da CFT, o sistema responsável por sensações de calma, segurança e vínculo afetivo é o de:",
+        opts: ["Ameaça","Busca/realização","Segurança/contentamento (afiliação e acolhimento)","Punição"],
+        correct: 2,
+        feedback: "O sistema de segurança/contentamento gera calma, afiliação e acolhimento (soothing). O de ameaça lida com perigo; o de busca/realização, com motivação e conquista; 'punição' não é um dos sistemas.",
+        norm: "Gilbert; CFT" },
+      { q: "A CFT é especialmente indicada para pacientes que:",
+        opts: ["Apresentam alto autocriticismo e vergonha, em que a reestruturação cognitiva sozinha costuma ter efeito limitado","Têm fobias específicas simples","Buscam apenas treino de habilidades sociais","Não apresentam sofrimento emocional"],
+        correct: 0,
+        feedback: "A CFT brilha com autocrítica e vergonha intensas — quadros em que mudar o conteúdo do pensamento (TCC) não basta, sendo preciso desenvolver autocompaixão. As demais não são sua indicação central.",
+        norm: "Gilbert; CFT" },
+      { q: "Na CFT, o sistema de busca/realização (incentivo) distingue-se do de segurança/contentamento porque:",
+        opts: ["São o mesmo sistema","O de busca gera calma e vínculo; o de segurança gera motivação e conquista","Apenas o de busca existe nas pessoas autocríticas","O de busca está ligado a motivação, conquista e entusiasmo; o de segurança, a calma, acolhimento e afiliação"],
+        correct: 3,
+        feedback: "Busca/realização = motivação e conquista; segurança/contentamento = calma e vínculo. B é a inversão exata (dúbia); A nega a distinção; C é falso.",
+        norm: "Gilbert; CFT" },
+      { q: "Desenvolver autocompaixão na CFT tem como função:",
+        opts: ["Justificar e desculpar todos os próprios erros","Eliminar de vez o sistema de ameaça","Ativar o sistema de segurança/contentamento, equilibrando um sistema de ameaça hiperativo típico da autocrítica","Aumentar a autocrítica para gerar disciplina"],
+        correct: 2,
+        feedback: "A autocompaixão ativa o sistema de segurança, que regula o de ameaça hiperativado na autocrítica/vergonha. A é a dúbia (autocompaixão não é autoindulgência/desculpar tudo); B é irreal (não se elimina o sistema de ameaça); D é o oposto.",
+        norm: "Gilbert; CFT" },
+      { q: "A Terapia Cognitiva Baseada em Mindfulness (MBCT), de Segal, Williams e Teasdale, foi desenvolvida principalmente para:",
+        opts: ["Tratar o episódio depressivo agudo e grave","Prevenir recaídas em pessoas com histórico de depressão recorrente","Substituir a medicação em quadros psicóticos","Tratar fobias específicas"],
+        correct: 1,
+        feedback: "A MBCT visa a prevenção de recaída depressiva, sobretudo em quem teve vários episódios. Não é para o episódio agudo nem para as demais condições.",
+        norm: "Segal, Williams & Teasdale; MBCT" },
+      { q: "Sobre o uso da MBCT, é correto afirmar que:",
+        opts: ["É voltada à prevenção de recaída e não é a indicação de primeira linha para o episódio depressivo em fase aguda","É indicada justamente para o episódio agudo grave, em substituição à TCC","Serve para qualquer transtorno indistintamente","Rejeita a ideia de que pensamentos influenciam emoções"],
+        correct: 0,
+        feedback: "A MBCT é preventiva (entre episódios), não tratamento de escolha na fase aguda. B é a dúbia (inverte a indicação); C generaliza demais; D contraria sua base cognitiva.",
+        norm: "MBCT" },
+      { q: "A 'descentração' trabalhada na MBCT consiste em:",
+        opts: ["Substituir pensamentos negativos por positivos","Refutar a validade dos pensamentos com evidências","Suprimir os pensamentos indesejados","Observar os pensamentos como eventos mentais passageiros, sem se identificar com eles nem tomá-los como fatos"],
+        correct: 3,
+        feedback: "Descentrar é ver o pensamento como um evento mental que passa — não como verdade nem como o eu. A e B são reestruturação (TCC); C é supressão, que costuma ter efeito paradoxal.",
+        norm: "MBCT" },
+      { q: "Na MBCT, a distinção entre o modo 'fazer' (doing) e o modo 'ser' (being) indica que:",
+        opts: ["O modo 'fazer' é sempre o objetivo da terapia","O modo 'ser' consiste em resolver problemas analiticamente; o 'fazer', em apenas observar a experiência","O modo 'fazer' busca resolver discrepâncias de forma analítica/ruminativa; o modo 'ser' cultiva a presença e a observação aberta da experiência","Os dois modos são idênticos"],
+        correct: 2,
+        feedback: "O modo 'fazer' é o da mente que rumina tentando resolver; o 'ser' é o da presença atenta. B é a inversão exata (dúbia); A e D não procedem.",
+        norm: "MBCT" },
+      { q: "Um paciente teve três episódios depressivos, está atualmente em remissão e quer reduzir o risco de recair. A abordagem contextual mais indicada é:",
+        opts: ["MBCT, voltada à prevenção de recaída depressiva","MBCT, para tratar o episódio agudo atual","CFT, para reduzir um quadro psicótico","DBT, por se tratar de risco suicida iminente"],
+        correct: 0,
+        feedback: "Episódios recorrentes + remissão + objetivo de prevenir = MBCT. B é a dúbia (não há episódio agudo; é prevenção); C e D descrevem indicações que não correspondem ao caso.",
+        norm: "MBCT" }
+    ]
+  },
+  6: {
+    label: "Nível 6 — Síntese e diferenciação",
+    questions: [
+      { q: "O elemento que UNE as diferentes terapias contextuais (ACT, DBT, FAP, CFT, MBCT) é:",
+        opts: ["O objetivo de eliminar sintomas pela reestruturação do conteúdo dos pensamentos","A interpretação do inconsciente","O foco no contexto e na função dos eventos psicológicos, com ênfase em aceitação, mindfulness e ação valorada, em vez de mudar o conteúdo","O uso exclusivo de medicação"],
+        correct: 2,
+        feedback: "O que une a família é mudar a relação/função com as experiências internas. A é a TCC (dúbia); B é psicanálise; D não se aplica.",
+        norm: "terapias contextuais" },
+      { q: "Uma diferença central entre DBT e ACT é que:",
+        opts: ["A ACT é estruturada em quatro módulos de habilidades; a DBT, no hexaflex","A DBT organiza-se em torno da dialética aceitação × mudança e do treino de habilidades; a ACT, em torno da flexibilidade psicológica e dos seis processos do hexaflex","A ACT trata borderline; a DBT, fobias","Não há diferença entre elas"],
+        correct: 1,
+        feedback: "DBT = dialética + habilidades; ACT = flexibilidade psicológica/hexaflex. A é a inversão exata (dúbia: troca o que é de cada uma); C erra as indicações.",
+        norm: "terapias contextuais" },
+      { q: "O que distingue a FAP das demais terapias contextuais é o seu foco em:",
+        opts: ["Reestruturar crenças nucleares","Aplicar protocolos de mindfulness em grupo","Trabalhar valores por metáforas","Usar a própria relação terapêutica, no aqui e agora da sessão, como o principal contexto de mudança"],
+        correct: 3,
+        feedback: "A marca da FAP é a relação terapêutica em tempo real como instrumento (CRBs). A é TCC; B lembra MBCT; C lembra ACT.",
+        norm: "FAP" },
+      { q: "A CFT seria a abordagem contextual de escolha, em comparação às demais, sobretudo quando o quadro central é:",
+        opts: ["Autocriticismo intenso e vergonha, com dificuldade de se acolher","Desregulação emocional grave com automutilação","Necessidade de prevenir recaída depressiva após vários episódios","Déficits no repertório interpessoal que aparecem na relação terapêutica"],
+        correct: 0,
+        feedback: "Autocrítica e vergonha são o território da CFT. B aponta para a DBT; C, para a MBCT; D, para a FAP — todas contextuais, cada uma para um foco.",
+        norm: "Gilbert; CFT" },
+      { q: "Paciente com transtorno de personalidade borderline, desregulação emocional intensa e automutilação. A abordagem contextual com maior suporte para o caso é:",
+        opts: ["MBCT","FAP isolada","DBT","Apenas psicoeducação"],
+        correct: 2,
+        feedback: "A DBT foi desenhada exatamente para borderline com desregulação e autolesão. MBCT é prevenção de recaída depressiva; FAP isolada não cobre o manejo de crise/risco; psicoeducação sozinha é insuficiente.",
+        norm: "DBT" },
+      { q: "Para um paciente cujo núcleo do sofrimento é a vergonha e a autocrítica corrosiva, a abordagem contextual mais direcionada é:",
+        opts: ["DBT","CFT","MBCT","FAP"],
+        correct: 1,
+        feedback: "A CFT foi desenvolvida para autocrítica/vergonha (desenvolver a mente compassiva). DBT mira desregulação/borderline; MBCT, recaída depressiva; FAP, repertório interpessoal via relação terapêutica.",
+        norm: "Gilbert; CFT" },
+      { q: "Para prevenir recaídas em alguém com histórico de depressão recorrente, atualmente em remissão, a escolha contextual mais indicada é:",
+        opts: ["MBCT","FAP","DBT","CFT"],
+        correct: 0,
+        feedback: "A MBCT é, por excelência, prevenção de recaída depressiva. As demais têm focos distintos (relação terapêutica, desregulação/borderline, autocrítica).",
+        norm: "MBCT" },
+      { q: "Sobre a base das terapias contextuais, é correto afirmar que:",
+        opts: ["Derivam da psicanálise e do estudo do inconsciente","Abandonam a pesquisa empírica","São incompatíveis entre si e não compartilham princípios","Compartilham a tradição comportamental/empírica e a sensibilidade ao contexto e à função, ainda que com técnicas próprias"],
+        correct: 3,
+        feedback: "Todas têm raiz comportamental-empírica e foco em contexto/função, com técnicas distintas. A erra a origem; B contraria o caráter empírico; C nega o que as agrupa como família.",
+        norm: "terapias contextuais" },
+      { q: "Em relação à TCC tradicional (segunda onda), as terapias contextuais (terceira onda):",
+        opts: ["Buscam, como a TCC, mudar o conteúdo dos pensamentos por reestruturação","Mudam o conteúdo dos pensamentos; a TCC é que muda a relação com eles","Tendem a mudar a relação e a função dos eventos internos (aceitação, mindfulness, valores), enquanto a TCC foca em modificar o conteúdo/validade dos pensamentos","São idênticas à TCC"],
+        correct: 2,
+        feedback: "Contextuais mudam a relação/função; a TCC, o conteúdo. A iguala indevidamente; B é a inversão exata (dúbia); D nega a diferença.",
+        norm: "terapias contextuais" },
+      { q: "Um paciente diz: 'já tentei de tudo para parar de me sentir ansioso e nada funciona; minha vida parou esperando isso melhorar.' Numa lógica contextual, o caminho seria:",
+        opts: ["Ajudá-lo a agir conforme o que importa para ele já agora, abrindo espaço para a ansiedade em vez de condicionar a vida ao seu desaparecimento","Garantir que a ansiedade seja eliminada antes de retomar a vida","Investigar a origem inconsciente da ansiedade na infância","Refutar uma a uma as crenças ansiosas até elas sumirem"],
+        correct: 0,
+        feedback: "A lógica contextual inverte a armadilha do 'só viver quando a ansiedade passar': age-se em direção aos valores com o desconforto presente. B repete a armadilha; C é psicanálise; D é reestruturação (TCC).",
+        norm: "terapias contextuais" }
+    ]
+  }
+};
+
+const LEVEL_DESC = {
+  1: "Fundamentos da terceira onda", 2: "ACT — Terapia de Aceitação e Compromisso",
+  3: "DBT — Terapia Comportamental Dialética", 4: "FAP — Psicoterapia Analítica Funcional",
+  5: "CFT e MBCT — compaixão e mindfulness", 6: "Síntese e diferenciação"
+};
+const MAX_LEVEL = 6;
+
+let unlocked = { 1: true, 2: false, 3: false, 4: false, 5: false, 6: false };
+let completed = { 1: false, 2: false, 3: false, 4: false, 5: false, 6: false };
+let state = { currentLevel: null, currentQ: 0, score: 0, answered: false, lastPassed: false };
+
+function startLevel(lvl) {
+  if (!LEVELS[lvl] || !unlocked[lvl]) return;
+  state.currentLevel = lvl; state.currentQ = 0; state.score = 0; state.answered = false;
+  document.getElementById('level-select').style.display = 'none';
+  document.getElementById('completion-banner').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('quiz-screen').style.display = 'block';
+  document.getElementById('quiz-level-label').textContent = `Nível ${lvl}`;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const level = LEVELS[state.currentLevel];
+  const q = level.questions[state.currentQ];
+  const total = level.questions.length;
+  state.answered = false;
+  document.getElementById('feedback-box').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('question-counter').textContent = `Pergunta ${state.currentQ + 1} de ${total}`;
+  document.getElementById('progress-fill').style.width = `${(state.currentQ / total) * 100}%`;
+  document.getElementById('question-text').textContent = q.q;
+  const list = document.getElementById('options-list');
+  list.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-letter">${letters[i]}</span><span>${opt}</span>`;
+    btn.onclick = () => selectOption(i, btn);
+    list.appendChild(btn);
+  });
+}
+
+function selectOption(idx, btn) {
+  if (state.answered) return;
+  state.answered = true;
+  const q = LEVELS[state.currentLevel].questions[state.currentQ];
+  const allBtns = document.querySelectorAll('.option-btn');
+  allBtns.forEach(b => b.disabled = true);
+  const feedbackBox = document.getElementById('feedback-box');
+  if (idx === q.correct) {
+    state.score++;
+    btn.classList.add('correct');
+    feedbackBox.className = 'feedback-box correct';
+    document.getElementById('feedback-label').textContent = '✓ Correto';
+  } else {
+    btn.classList.add('wrong');
+    allBtns[q.correct].classList.add('reveal-correct');
+    feedbackBox.className = 'feedback-box wrong';
+    document.getElementById('feedback-label').textContent = '✗ Incorreto';
+  }
+  const normHtml = q.norm ? `<span class="feedback-norm">📌 Base: ${q.norm}</span>` : '';
+  document.getElementById('feedback-text').innerHTML = q.feedback + normHtml;
+  feedbackBox.style.display = 'block';
+  const nextBtn = document.getElementById('next-btn');
+  const isLast = state.currentQ === LEVELS[state.currentLevel].questions.length - 1;
+  nextBtn.textContent = isLast ? 'Ver resultado →' : 'Próxima pergunta →';
+  nextBtn.style.display = 'block';
+}
+
+function nextQuestion() {
+  state.currentQ++;
+  if (state.currentQ >= LEVELS[state.currentLevel].questions.length) showResult();
+  else renderQuestion();
+}
+
+function showResult() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'block';
+  const lvl = state.currentLevel;
+  const total = LEVELS[lvl].questions.length;
+  const pct = Math.round((state.score / total) * 100);
+  const passed = pct >= PASS;
+  state.lastPassed = passed;
+  document.getElementById('result-score').textContent = `${state.score}/${total}`;
+  document.getElementById('result-score-label').textContent = `${pct}% de acerto`;
+  let emoji, title, msg;
+  if (pct === 100) { emoji = '🏆'; title = 'Perfeito!'; msg = 'Gabaritou — distinção entre as abordagens contextuais na ponta da língua.'; }
+  else if (pct >= PASS) { emoji = '🎯'; title = 'Aprovado!'; msg = 'Sólido. Revise os itens que escaparam e siga em frente com confiança.'; }
+  else { emoji = '📖'; title = 'Revisar antes de continuar'; msg = `Abaixo de ${PASS}%. Revise o conteúdo deste nível e tente novamente — é preciso ${PASS}% para desbloquear o próximo.`; }
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-message').textContent = msg;
+
+  if (passed) {
+    completed[lvl] = true;
+    if (lvl < MAX_LEVEL) unlocked[lvl + 1] = true;
+  }
+  const nextBtn = document.getElementById('next-level-btn');
+  if (lvl >= MAX_LEVEL) {
+    nextBtn.textContent = passed ? 'Módulo concluído ✓' : 'Refazer para concluir';
+    nextBtn.disabled = passed;
+  } else {
+    nextBtn.textContent = 'Próximo nível →';
+    nextBtn.disabled = !passed;
+  }
+  updateLevelCards();
+}
+
+function updateLevelCards() {
+  for (let lvl = 1; lvl <= MAX_LEVEL; lvl++) {
+    const card = document.getElementById('card-' + lvl);
+    const status = document.getElementById('status-' + lvl);
+    card.classList.remove('completed', 'locked');
+    card.onclick = null;
+    if (completed[lvl]) {
+      card.classList.add('completed');
+      status.className = 'level-status done';
+      status.textContent = '✓ Concluído';
+      card.onclick = () => startLevel(lvl);
+    } else if (unlocked[lvl]) {
+      status.className = 'level-status available';
+      status.textContent = 'Disponível';
+      card.onclick = () => startLevel(lvl);
+    } else {
+      card.classList.add('locked');
+      status.className = 'level-status locked-txt';
+      status.textContent = '🔒 Bloqueado';
+    }
+  }
+}
+
+function retryLevel() { startLevel(state.currentLevel); }
+
+function goNextLevel() {
+  const next = state.currentLevel + 1;
+  if (next <= MAX_LEVEL && unlocked[next]) startLevel(next);
+  else backToMenu();
+}
+
+function backToMenu() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('level-select').style.display = 'block';
+  updateLevelCards();
+  const allDone = Object.keys(completed).every(k => completed[k]);
+  document.getElementById('completion-banner').style.display = allDone ? 'block' : 'none';
+}
+</script>
+</body>
+</html>

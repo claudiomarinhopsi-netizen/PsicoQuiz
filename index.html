@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Psicologia — Biblioteca de Módulos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1f2535;
+    --border: #2a3045;
+    --accent: #4f8ef7;
+    --accent2: #7c5cbf;
+    --success: #3ecf8e;
+    --gold: #f7b955;
+    --pink: #ff78c8;
+    --coral: #f75f5f;
+    --text: #e8eaf0;
+    --text-dim: #8892a4;
+    --text-dimmer: #4a5568;
+    --radius: 14px;
+    --radius-sm: 8px;
+
+    /* cor de cada bloco — guia de navegação */
+    --b1: #4f8ef7;
+    --b2: #7c5cbf;
+    --b3: #3ecf8e;
+    --b4: #f7b955;
+    --b5: #ff78c8;
+    --bt: #f75f5f;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* textura de grão — assinatura editorial */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* brilho ambiente atrás do hero */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px; left: 50%;
+    width: 900px; height: 600px;
+    transform: translateX(-50%);
+    background: radial-gradient(closest-side, rgba(79,142,247,.10), transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { position: relative; z-index: 1; }
+
+  /* ── MASTHEAD ── */
+  .masthead {
+    border-bottom: 1px solid var(--border);
+    padding: 0 clamp(20px, 5vw, 80px);
+    background: rgba(15,17,23,.7);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .masthead-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+  }
+  .logo { display: flex; align-items: baseline; gap: 10px; }
+  .logo-main {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--text);
+    letter-spacing: -.01em;
+  }
+  .logo-sub {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .masthead-meta {
+    font-size: 12px;
+    color: var(--text-dimmer);
+    text-align: right;
+    line-height: 1.5;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: clamp(44px, 8vw, 84px) clamp(20px, 5vw, 80px) 0;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 48px;
+    align-items: end;
+  }
+  .hero-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    width: 26px; height: 1.5px;
+    background: var(--accent);
+  }
+  .hero-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(36px, 6.5vw, 66px);
+    line-height: 1.08;
+    letter-spacing: -.02em;
+    margin-bottom: 18px;
+  }
+  .hero-title em { font-style: italic; color: var(--accent); }
+  .hero-desc {
+    font-size: 16px;
+    color: var(--text-dim);
+    line-height: 1.65;
+    max-width: 520px;
+    font-weight: 300;
+  }
+  .hero-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding-bottom: 6px;
+  }
+  .stat-item {
+    text-align: right;
+    border-right: 2px solid var(--border);
+    padding-right: 16px;
+  }
+  .stat-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 34px;
+    line-height: 1;
+    color: var(--text);
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-dimmer);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-top: 3px;
+  }
+
+  /* ── MODELO grátis/premium ── */
+  .model-strip {
+    max-width: 1100px;
+    margin: 44px auto 0;
+    padding: 0 clamp(20px, 5vw, 80px);
+  }
+  .model-card {
+    background: linear-gradient(135deg, rgba(62,207,142,.07), rgba(79,142,247,.05));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px 28px;
+  }
+  .model-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px;
+    margin-right: 6px;
+  }
+  .model-point { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-dim); }
+  .dot { width: 9px; height: 9px; border-radius: 99px; flex-shrink: 0; }
+  .dot.free { background: var(--success); }
+  .dot.prem { background: var(--gold); }
+  .dot.soon { background: var(--text-dimmer); }
+
+  /* ── BLOCOS ── */
+  .content {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 8px clamp(20px, 5vw, 80px) 90px;
+  }
+  .section-divider {
+    margin-top: 52px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .section-divider-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--block-color, var(--text-dim));
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-divider-label .tick {
+    width: 8px; height: 8px; border-radius: 99px;
+    background: var(--block-color, var(--text-dim));
+    box-shadow: 0 0 12px var(--block-color, transparent);
+  }
+  .section-divider-line { flex: 1; height: 1px; background: var(--border); }
+
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+  }
+
+  /* ── CARD ── */
+  .module-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+    transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+    opacity: 0;
+    transform: translateY(14px);
+    animation: rise .5s ease forwards;
+  }
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+
+  .module-card::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 3px;
+    background: var(--block-color, var(--accent));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .28s ease;
+  }
+  .module-card.available { cursor: pointer; }
+  .module-card.available:hover {
+    transform: translateY(-4px);
+    border-color: var(--block-color, var(--accent));
+    box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  }
+  .module-card.available:hover::after { transform: scaleX(1); }
+  .module-card.coming { opacity: 0; cursor: default; }
+  .module-card.coming.shown { animation: riseDim .5s ease forwards; }
+  @keyframes riseDim { to { opacity: .5; transform: translateY(0); } }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .card-icon {
+    font-size: 26px;
+    line-height: 1;
+    width: 46px; height: 46px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface2);
+    border-radius: 10px;
+  }
+  .card-badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .badge-free { background: rgba(62,207,142,.12); color: var(--success); border: 1px solid rgba(62,207,142,.3); }
+  .badge-prem { background: rgba(247,185,85,.12); color: var(--gold); border: 1px solid rgba(247,185,85,.3); }
+  .badge-soon { background: var(--surface2); color: var(--text-dimmer); border: 1px solid var(--border); }
+
+  .card-number { font-size: 11px; font-weight: 600; color: var(--text-dimmer); letter-spacing: .08em; }
+  .card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    line-height: 1.25;
+    color: var(--text);
+  }
+  .card-desc { font-size: 13px; color: var(--text-dim); line-height: 1.55; font-weight: 300; flex: 1; }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dimmer);
+  }
+  .card-meta-info { display: flex; gap: 14px; }
+  .card-arrow {
+    font-size: 16px;
+    color: var(--block-color, var(--accent));
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: all .2s;
+  }
+  .module-card.available:hover .card-arrow { opacity: 1; transform: translateX(0); }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 26px clamp(20px, 5vw, 80px);
+    background: var(--surface);
+  }
+  .footer-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .footer-text { font-size: 12px; color: var(--text-dimmer); line-height: 1.5; }
+  .footer-tag {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 20px;
+  }
+
+  @media (max-width: 720px) {
+    .hero { grid-template-columns: 1fr; gap: 30px; }
+    .hero-stats { flex-direction: row; justify-content: flex-start; }
+    .stat-item { text-align: left; border-right: none; border-left: 2px solid var(--border); padding-right: 0; padding-left: 12px; }
+    .masthead-meta { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- MASTHEAD -->
+  <header class="masthead">
+    <div class="masthead-inner">
+      <div class="logo">
+        <span class="logo-main">Quiz Psicologia</span>
+        <span class="logo-sub">Biblioteca</span>
+      </div>
+      <div class="masthead-meta">
+        Projeto educacional · Estudo progressivo<br>
+        Estudantes · Profissionais · Concursos
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div>
+      <div class="hero-eyebrow">Quiz progressivo de psicologia</div>
+      <h1 class="hero-title">A teoria na ponta<br>dos <em>dedos.</em></h1>
+      <p class="hero-desc">Módulos de quiz sobre teorias, abordagens, psicopatologia, áreas aplicadas e ética. Cada módulo tem níveis progressivos — do conceito ao caso clínico — com feedback explicativo em toda resposta.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-number" id="stat-total">21</div>
+        <div class="stat-label">Módulos no catálogo</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" id="stat-avail">5</div>
+        <div class="stat-label">Disponíveis agora</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number" id="stat-q">280</div>
+        <div class="stat-label">Questões publicadas</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODELO grátis/premium -->
+  <div class="model-strip">
+    <div class="model-card">
+      <span class="model-title">Como funciona</span>
+      <span class="model-point"><span class="dot free"></span> TCC <strong>100% grátis</strong></span>
+      <span class="model-point"><span class="dot free"></span> Nível 1 de cada módulo grátis</span>
+      <span class="model-point"><span class="dot prem"></span> Premium: níveis avançados, simulados e progresso</span>
+      <span class="model-point"><span class="dot soon"></span> Em breve: em produção</span>
+    </div>
+  </div>
+
+  <!-- CONTEÚDO -->
+  <main class="content" id="catalog"></main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-text">
+        Projeto educacional · Psicologia em português<br>
+        Conteúdo em expansão contínua
+      </div>
+      <span class="footer-tag">Estudo guiado por níveis</span>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+const BLOCKS = [
+  { id: 1, label: "Bloco 1 — Fundamentos Históricos e Teóricos", color: "var(--b1)" },
+  { id: 2, label: "Bloco 2 — Grandes Abordagens Clínicas",       color: "var(--b2)" },
+  { id: 3, label: "Bloco 3 — Psicopatologia, Saúde Mental e Psicofarmacologia", color: "var(--b3)" },
+  { id: 4, label: "Bloco 4 — Avaliação e Áreas Aplicadas",       color: "var(--b4)" },
+  { id: 5, label: "Bloco 5 — Desenvolvimento, Neurociência e Neurodiversidade", color: "var(--b5)" },
+  { id: "t", label: "Transversal — Essencial de Concurso",        color: "var(--bt)" }
+];
+
+const MODULES = [
+  // Bloco 1
+  { n:"01", block:1, icon:"🏛️", title:"História e Origens da Psicologia", desc:"Wundt, James, o laboratório de Leipzig e o nascimento da psicologia como ciência autônoma.", status:"coming", access:"premium" },
+  { n:"02", block:1, icon:"🔬", title:"Escolas Clássicas", desc:"Estruturalismo, Funcionalismo e Gestalt — os primeiros sistemas e seus métodos.", status:"coming", access:"premium" },
+  { n:"03", block:1, icon:"🐀", title:"Behaviorismo e Análise do Comportamento", desc:"Watson, Pavlov, Skinner e Bandura. Condicionamento clássico, operante e aprendizagem social.", status:"coming", access:"premium" },
+  // Bloco 2
+  { n:"04", block:2, icon:"🛋️", title:"Psicanálise Freudiana", desc:"Inconsciente, mecanismos de defesa, aparelho psíquico e técnica psicanalítica.", status:"coming", access:"premium" },
+  { n:"05", block:2, icon:"🌀", title:"Psicanálise Pós-Freudiana", desc:"Jung, Adler, Klein, Winnicott e Lacan. As ramificações da psicanálise no século XX.", status:"coming", access:"premium" },
+  { n:"06", block:2, icon:"🌱", title:"Humanismo e ACP", desc:"Rogers e Maslow. Tendência atualizante, empatia, congruência e hierarquia de necessidades.", status:"coming", access:"premium" },
+  { n:"07", block:2, icon:"🧠", title:"Terapia Cognitivo-Comportamental", desc:"Beck, Ellis, distorções cognitivas, reestruturação e aplicação clínica. Do conceito ao caso complexo.", status:"available", access:"free", levels:6, questions:60, href:"quiz_tcc.html" },
+  { n:"08", block:2, icon:"🧘", title:"Terapias Contextuais", desc:"A terceira onda: ACT, DBT, FAP, CFT e MBCT. Flexibilidade psicológica, aceitação, valores e mindfulness — dos fundamentos à diferenciação clínica.", status:"available", access:"premium", levels:6, questions:60, href:"quiz_terapias_contextuais.html" },
+  // Bloco 3
+  { n:"09", block:3, icon:"🩺", title:"Psicopatologia", desc:"CID-11 e DSM-5-TR. Quadros clínicos, critérios diagnósticos e diagnóstico diferencial.", status:"available", access:"premium", levels:6, questions:60, href:"quiz_psicopatologia_modulo.html" },
+  { n:"10", block:3, icon:"💊", title:"Psicofarmacologia", desc:"Antidepressivos, ansiolíticos, antipsicóticos e estabilizadores. Mecanismos e manejo na prática.", status:"coming", access:"premium" },
+  { n:"11", block:3, icon:"🏥", title:"Saúde Mental e Políticas Públicas", desc:"Reforma Psiquiátrica, Luta Antimanicomial, RAPS e a saúde mental no SUS.", status:"coming", access:"premium" },
+  // Bloco 4
+  { n:"12", block:4, icon:"📋", title:"Avaliação Psicológica", desc:"Testes, validade, fidedignidade, SATEPSI e elaboração de documentos psicológicos.", status:"available", access:"premium", levels:5, questions:50, href:"quiz_avaliacao.html" },
+  { n:"13", block:4, icon:"💼", title:"Organizacional e do Trabalho", desc:"Recrutamento, seleção, clima, cultura e saúde do trabalhador.", status:"coming", access:"premium" },
+  { n:"14", block:4, icon:"⚖️", title:"Jurídica e Forense", desc:"Perícia, avaliação forense, depoimento especial e psicologia no sistema de justiça.", status:"coming", access:"premium" },
+  { n:"15", block:4, icon:"🩹", title:"Hospitalar e da Saúde", desc:"Psicologia da saúde, atuação hospitalar, adesão ao tratamento, luto e cuidados paliativos.", status:"coming", access:"premium" },
+  { n:"16", block:4, icon:"🎒", title:"Escolar e Educacional", desc:"Aprendizagem, queixa escolar, inclusão e atuação do psicólogo na educação.", status:"coming", access:"premium" },
+  { n:"17", block:4, icon:"🏘️", title:"Social e Comunitária", desc:"Influência social, grupos, SUAS, CRAS/CREAS e psicologia comunitária.", status:"coming", access:"premium" },
+  // Bloco 5
+  { n:"18", block:5, icon:"👶", title:"Psicologia do Desenvolvimento", desc:"Piaget, Vygotsky, Wallon e Bowlby. Marcos do desenvolvimento cognitivo, afetivo e social.", status:"coming", access:"premium" },
+  { n:"19", block:5, icon:"🧬", title:"Neuropsicologia", desc:"Bases neurais do comportamento, funções executivas e avaliação neuropsicológica.", status:"coming", access:"premium" },
+  { n:"20", block:5, icon:"♾️", title:"Neurodiversidade e Neurodesenvolvimento", desc:"TEA, TDAH e TOD. Transtornos do neurodesenvolvimento e o paradigma da neurodiversidade.", status:"coming", access:"premium" },
+  // Transversal
+  { n:"21", block:"t", icon:"📜", title:"Ética Profissional e Legislação", desc:"Código de Ética do CFP, resoluções, sigilo e documentos psicológicos. O que mais cai em concurso.", status:"available", access:"premium", levels:5, questions:50, href:"quiz_etica_modulo.html" }
+];
+
+function badge(m) {
+  if (m.status === "coming") return '<span class="card-badge badge-soon">Em breve</span>';
+  if (m.access === "free")   return '<span class="card-badge badge-free">✦ Grátis</span>';
+  return '<span class="card-badge badge-prem">Premium</span>';
+}
+
+function meta(m) {
+  if (m.status === "available") {
+    return `<span class="card-meta-info"><span>📝 ${m.questions} questões</span><span>${m.levels} níveis</span></span>
+            <span class="card-arrow">→</span>`;
+  }
+  return `<span class="card-meta-info"><span>Em produção</span></span>`;
+}
+
+function renderCatalog() {
+  const root = document.getElementById("catalog");
+  let html = "";
+  let delay = 0;
+
+  BLOCKS.forEach(block => {
+    const mods = MODULES.filter(m => m.block === block.id);
+    if (!mods.length) return;
+
+    html += `<div class="section-divider" style="--block-color:${block.color}">
+        <span class="section-divider-label"><span class="tick"></span>${block.label}</span>
+        <span class="section-divider-line"></span>
+      </div>
+      <div class="modules-grid">`;
+
+    mods.forEach(m => {
+      delay += 0.04;
+      const isAvail = m.status === "available";
+      const tag = isAvail ? "a" : "div";
+      const href = isAvail ? ` href="${m.href}"` : "";
+      const cls = isAvail ? "available" : "coming";
+      html += `<${tag} class="module-card ${cls}"${href} style="--block-color:${block.color}; animation-delay:${delay.toFixed(2)}s">
+          <div class="card-top">
+            <span class="card-icon">${m.icon}</span>
+            ${badge(m)}
+          </div>
+          <div class="card-number">Módulo ${m.n}</div>
+          <div class="card-title">${m.title}</div>
+          <div class="card-desc">${m.desc}</div>
+          <div class="card-meta">${meta(m)}</div>
+        </${tag}>`;
+    });
+
+    html += `</div>`;
+  });
+
+  root.innerHTML = html;
+
+  // revela os "em breve" (que entram com opacidade reduzida)
+  requestAnimationFrame(() => {
+    document.querySelectorAll(".module-card.coming").forEach(c => c.classList.add("shown"));
+  });
+
+  // estatísticas calculadas a partir dos dados
+  const avail = MODULES.filter(m => m.status === "available");
+  document.getElementById("stat-total").textContent = MODULES.length;
+  document.getElementById("stat-avail").textContent = avail.length;
+  document.getElementById("stat-q").textContent = avail.reduce((s, m) => s + (m.questions || 0), 0);
+}
+
+renderCatalog();
+</script>
+</body>
+</html>

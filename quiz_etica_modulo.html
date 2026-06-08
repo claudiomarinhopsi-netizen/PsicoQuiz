@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Ética Profissional — Legislação e CFP</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117; --surface: #181c27; --surface2: #1f2535; --border: #2a3045;
+    --accent: #4f8ef7; --accent2: #7c5cbf; --success: #3ecf8e; --error: #f75f5f;
+    --warning: #f7b955; --text: #e8eaf0; --text-dim: #8892a4; --text-dimmer: #4a5568;
+    --radius: 14px; --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-weight: 400; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px 60px; }
+  .module-header { width: 100%; max-width: 720px; margin-bottom: 32px; text-align: center; }
+  .module-tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); background: rgba(79,142,247,.12); border: 1px solid rgba(79,142,247,.25); border-radius: 20px; padding: 4px 14px; margin-bottom: 14px; }
+  .module-title { font-family: 'DM Serif Display', serif; font-size: clamp(28px, 6vw, 42px); line-height: 1.15; color: var(--text); margin-bottom: 8px; }
+  .module-title em { font-style: italic; color: var(--accent); }
+  .module-subtitle { font-size: 15px; color: var(--text-dim); font-weight: 300; }
+  #level-select { width: 100%; max-width: 720px; }
+  .levels-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
+  .level-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 18px 14px; cursor: pointer; transition: all .2s ease; text-align: center; position: relative; overflow: hidden; }
+  .level-card::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity .2s; }
+  .level-card.l1::before { background: linear-gradient(135deg, rgba(79,142,247,.08), transparent); }
+  .level-card.l2::before { background: linear-gradient(135deg, rgba(124,92,191,.08), transparent); }
+  .level-card.l3::before { background: linear-gradient(135deg, rgba(79,142,247,.08), transparent); }
+  .level-card.l4::before { background: linear-gradient(135deg, rgba(247,185,85,.08), transparent); }
+  .level-card.l5::before { background: linear-gradient(135deg, rgba(124,92,191,.08), transparent); }
+  .level-card.l6::before { background: linear-gradient(135deg, rgba(62,207,142,.08), transparent); }
+  .level-card:hover:not(.locked)::before { opacity: 1; }
+  .level-card:hover:not(.locked) { border-color: rgba(79,142,247,.4); transform: translateY(-2px); }
+  .level-card.locked { opacity: .4; cursor: not-allowed; }
+  .level-card.completed { border-color: var(--success); }
+  .level-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+  .level-name { font-family: 'DM Serif Display', serif; font-size: 15px; margin-bottom: 3px; }
+  .level-desc { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+  .level-status { margin-top: 8px; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  .level-status.done { color: var(--success); }
+  .level-status.locked-txt { color: var(--text-dimmer); }
+  .level-status.available { color: var(--accent); }
+  #quiz-screen { width: 100%; max-width: 720px; display: none; }
+  .quiz-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .back-btn { background: none; border: 1px solid var(--border); color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 6px 14px; border-radius: 20px; cursor: pointer; transition: all .2s; }
+  .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .quiz-level-badge { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); }
+  .progress-bar-wrap { background: var(--surface2); border-radius: 99px; height: 6px; width: 100%; margin-bottom: 28px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .4s ease; }
+  .question-counter { font-size: 12px; color: var(--text-dimmer); margin-bottom: 10px; text-align: right; }
+  .question-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 28px 24px; margin-bottom: 16px; }
+  .question-text { font-family: 'DM Serif Display', serif; font-size: clamp(16px, 3.5vw, 21px); line-height: 1.4; color: var(--text); }
+  .options-list { display: flex; flex-direction: column; gap: 10px; }
+  .option-btn { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px 18px; text-align: left; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: all .18s ease; display: flex; align-items: flex-start; gap: 12px; line-height: 1.45; }
+  .option-letter { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; min-width: 24px; border-radius: 6px; background: var(--surface2); font-size: 12px; font-weight: 600; color: var(--text-dim); transition: all .18s; }
+  .option-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(79,142,247,.06); }
+  .option-btn:hover:not(:disabled) .option-letter { background: var(--accent); color: #fff; }
+  .option-btn.correct { border-color: var(--success); background: rgba(62,207,142,.08); }
+  .option-btn.correct .option-letter { background: var(--success); color: #fff; }
+  .option-btn.wrong { border-color: var(--error); background: rgba(247,95,95,.08); }
+  .option-btn.wrong .option-letter { background: var(--error); color: #fff; }
+  .option-btn.reveal-correct { border-color: var(--success); background: rgba(62,207,142,.05); opacity: .7; }
+  .option-btn:disabled { cursor: default; }
+  .feedback-box { border-radius: var(--radius-sm); padding: 16px 18px; margin-bottom: 16px; font-size: 14px; line-height: 1.6; display: none; animation: slideUp .25s ease; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .feedback-box.correct { background: rgba(62,207,142,.1); border: 1px solid rgba(62,207,142,.3); color: #a8f0cf; }
+  .feedback-box.wrong { background: rgba(247,95,95,.1); border: 1px solid rgba(247,95,95,.3); color: #ffa8a8; }
+  .feedback-label { font-weight: 600; font-size: 13px; letter-spacing: .04em; margin-bottom: 5px; text-transform: uppercase; }
+  .feedback-norm { display: block; margin-top: 8px; font-size: 12px; color: var(--text-dim); font-style: italic; }
+  .next-btn { width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; border-radius: var(--radius-sm); color: #fff; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; padding: 15px; cursor: pointer; transition: opacity .2s, transform .2s; display: none; }
+  .next-btn:hover { opacity: .9; transform: translateY(-1px); }
+  #result-screen { width: 100%; max-width: 720px; display: none; text-align: center; }
+  .result-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 40px 28px; }
+  .result-emoji { font-size: 52px; margin-bottom: 16px; display: block; }
+  .result-title { font-family: 'DM Serif Display', serif; font-size: 28px; margin-bottom: 8px; }
+  .result-score { font-size: 48px; font-weight: 600; color: var(--accent); margin: 16px 0 4px; }
+  .result-score-label { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; }
+  .result-message { font-size: 15px; color: var(--text-dim); line-height: 1.6; margin-bottom: 28px; max-width: 460px; margin-left: auto; margin-right: auto; }
+  .result-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn-outline { background: none; border: 1.5px solid var(--border); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; padding: 12px 22px; border-radius: var(--radius-sm); cursor: pointer; transition: all .2s; }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; padding: 12px 22px; border-radius: var(--radius-sm); cursor: pointer; }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+  #completion-banner { width: 100%; max-width: 720px; display: none; background: linear-gradient(135deg, rgba(62,207,142,.12), rgba(79,142,247,.08)); border: 1.5px solid rgba(62,207,142,.3); border-radius: var(--radius); padding: 24px; text-align: center; margin-top: 20px; }
+  #completion-banner h3 { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 8px; color: var(--success); }
+  #completion-banner p { font-size: 14px; color: var(--text-dim); }
+  @media (max-width: 520px) { .levels-grid { grid-template-columns: repeat(2, 1fr); } .question-card { padding: 20px 16px; } .option-btn { padding: 12px 14px; font-size: 13px; } }
+</style>
+</head>
+<body>
+
+<header class="module-header">
+  <div class="module-tag">Módulo 21 · Transversal</div>
+  <h1 class="module-title">Ética <em>Profissional</em></h1>
+  <p class="module-subtitle">Legislação, Código de Ética e resoluções do CFP</p>
+</header>
+
+<div id="level-select">
+  <div class="levels-grid">
+    <div class="level-card l1" id="card-1" onclick="startLevel(1)">
+      <span class="level-icon">📜</span>
+      <div class="level-name">Nível 1</div>
+      <div class="level-desc">Fundamentos e estrutura da profissão</div>
+      <div class="level-status available" id="status-1">Disponível</div>
+    </div>
+    <div class="level-card l2 locked" id="card-2">
+      <span class="level-icon">⚖️</span>
+      <div class="level-name">Nível 2</div>
+      <div class="level-desc">Código de Ética: deveres e vedações</div>
+      <div class="level-status locked-txt" id="status-2">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l3 locked" id="card-3">
+      <span class="level-icon">🔒</span>
+      <div class="level-name">Nível 3</div>
+      <div class="level-desc">Sigilo, documentos e avaliação</div>
+      <div class="level-status locked-txt" id="status-3">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l4 locked" id="card-4">
+      <span class="level-icon">🌐</span>
+      <div class="level-name">Nível 4</div>
+      <div class="level-desc">Atuação contemporânea</div>
+      <div class="level-status locked-txt" id="status-4">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l5 locked" id="card-5">
+      <span class="level-icon">🧑‍⚖️</span>
+      <div class="level-name">Nível 5</div>
+      <div class="level-desc">Casos e processo disciplinar</div>
+      <div class="level-status locked-txt" id="status-5">🔒 Bloqueado</div>
+    </div>
+  </div>
+
+  <div id="completion-banner">
+    <h3>🎓 Módulo Concluído!</h3>
+    <p>Você percorreu os 5 níveis de Ética — da legislação e do Código ao processo ético-disciplinar.</p>
+  </div>
+</div>
+
+<div id="quiz-screen">
+  <div class="quiz-top">
+    <button class="back-btn" onclick="backToMenu()">← Voltar</button>
+    <span class="quiz-level-badge" id="quiz-level-label">Nível 1</span>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+  <div class="question-counter" id="question-counter">Pergunta 1 de 10</div>
+  <div class="question-card">
+    <p class="question-text" id="question-text"></p>
+  </div>
+  <div class="options-list" id="options-list"></div>
+  <div class="feedback-box" id="feedback-box">
+    <div class="feedback-label" id="feedback-label"></div>
+    <div id="feedback-text"></div>
+  </div>
+  <button class="next-btn" id="next-btn" onclick="nextQuestion()">Próxima pergunta →</button>
+</div>
+
+<div id="result-screen">
+  <div class="result-card">
+    <span class="result-emoji" id="result-emoji"></span>
+    <div class="result-title" id="result-title"></div>
+    <div class="result-score" id="result-score"></div>
+    <div class="result-score-label" id="result-score-label"></div>
+    <p class="result-message" id="result-message"></p>
+    <div class="result-actions">
+      <button class="btn-outline" onclick="retryLevel()">Tentar novamente</button>
+      <button class="btn-primary" id="next-level-btn" onclick="goNextLevel()">Próximo nível →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PASS = 80;
+const LEVELS = {"1":{"label":"Nível 1 — Fundamentos e estrutura da profissão","questions":[{"q":"A profissão de psicólogo no Brasil foi oficialmente regulamentada por qual instrumento legal?","opts":["Lei nº 4.119/1962, que dispôs sobre os cursos de formação e regulamentou a profissão","Lei nº 5.766/1971, que também criou os conselhos profissionais","O decreto presidencial que, em 1964, regulamentou a profissão","Código de Ética Profissional, instituído em 2005"],"correct":0,"feedback":"A Lei nº 4.119, de 27 de agosto de 1962, dispõe sobre os cursos de formação e regulamenta a profissão de psicólogo — por isso 27 de agosto é o Dia do Psicólogo. A criação dos conselhos só viria em 1971, com a Lei nº 5.766. Guarde a dupla: 4.119 = profissão; 5.766 = conselhos.","norm":"Lei nº 4.119/1962"},{"q":"O 'Dia do Psicólogo', comemorado em 27 de agosto, faz referência a:","opts":["Fundação do Conselho Federal de Psicologia","Publicação do Código de Ética em vigor","Regulamentação da psicologia como especialidade médica","Sanção da Lei nº 4.119/1962, que regulamentou a profissão"],"correct":3,"feedback":"27 de agosto de 1962 é a data da Lei nº 4.119, sancionada pelo presidente João Goulart, que reconheceu oficialmente a profissão — daí a celebração do Dia do Psicólogo. Coincidência que costuma confundir: o Código de Ética atual também passou a vigorar num 27 de agosto, mas de 2005.","norm":"Lei nº 4.119/1962"},{"q":"Segundo a Lei nº 4.119/1962, a formação em psicologia comportava três titulações distintas. Eram elas:","opts":["Técnico, tecnólogo e bacharel","Psicólogo, psicanalista e psicoterapeuta","Bacharel, licenciado e psicólogo","Graduação, especialização e mestrado"],"correct":2,"feedback":"A lei estruturou a formação em três títulos: o bacharelado (voltado ao estudo e à pesquisa), a licenciatura (que habilita ao ensino) e a formação de psicólogo (que confere as atribuições profissionais propriamente ditas). Só o último habilita ao exercício privativo da profissão.","norm":"Lei nº 4.119/1962, art. 1º"},{"q":"Sobre o exercício da profissão de psicólogo no Brasil, é correto afirmar que ele é:","opts":["Livre em todo o território nacional, mas a designação de 'psicólogo' é privativa dos habilitados","Restrito a servidores públicos concursados","Permitido a qualquer portador de diploma superior na área da saúde","Condicionado à autorização prévia do Ministério da Saúde"],"correct":0,"feedback":"A regulamentação da profissão estabelece que o exercício é livre em todo o território nacional, observada a legislação — mas a designação profissional de 'psicólogo' é privativa de quem tem formação e registro. Ou seja: a atividade é livre dentro das regras, porém o título é exclusivo dos habilitados.","norm":"Lei nº 4.119/1962 e seu decreto regulamentador"},{"q":"Dois marcos legais costumam ser confundidos. Qual associação está correta?","opts":["A Lei 4.119/1962 criou os conselhos; a Lei 5.766/1971 regulamentou a profissão","A Lei 5.766/1971 regulamentou a profissão e também criou os conselhos","A Lei 4.119/1962 instituiu o Código de Ética; a Lei 5.766/1971 criou os CRPs","A Lei 4.119/1962 regulamentou a profissão; a Lei 5.766/1971 criou os conselhos"],"correct":3,"feedback":"Este é o par que mais confunde — e o que mais importa guardar. A Lei 4.119/1962 regulamentou a profissão (e deu origem ao Dia do Psicólogo); a Lei 5.766/1971 criou o CFP e os CRPs. Lembrando só dessa distinção, você já resolve a maioria das questões sobre marcos legais.","norm":"Leis nº 4.119/1962 e nº 5.766/1971"},{"q":"Quanto à natureza jurídica, o CFP e os CRPs são definidos em lei como:","opts":["Órgãos da administração direta vinculados ao Ministério da Saúde","Autarquias de direito público, com autonomia administrativa e financeira","Associações civis de direito privado","Sindicatos representativos da categoria"],"correct":1,"feedback":"A Lei 5.766/1971 define os conselhos como dotados de personalidade jurídica de direito público e autonomia administrativa e financeira, constituindo, em conjunto, uma autarquia. Não são sindicatos nem entidades privadas — distinção que aparece com frequência em prova.","norm":"Lei nº 5.766/1971, art. 1º"},{"q":"A função típica atribuída por lei ao Sistema Conselhos de Psicologia é:","opts":["Representar os interesses econômicos e trabalhistas da categoria","Formar e diplomar novos psicólogos","Orientar, disciplinar e fiscalizar o exercício da profissão e zelar pela ética da classe","Definir o piso salarial e negociar acordos coletivos"],"correct":2,"feedback":"Os conselhos existem para orientar, disciplinar e fiscalizar o exercício profissional e zelar pela observância dos princípios éticos — protegendo, em última instância, a sociedade. Representar interesses econômicos e negociar salários é papel do sindicato. Confundir conselho com sindicato é um erro clássico de concurso.","norm":"Lei nº 5.766/1971, art. 1º"},{"q":"Sobre a estrutura do Sistema Conselhos, é correto afirmar que:","opts":["O CFP é o órgão supremo dos CRPs e funciona como tribunal superior de ética profissional","Cada CRP é independente e não se subordina ao CFP","Os CRPs julgam, em grau de recurso, as decisões do CFP","O CFP tem sede em São Paulo, a maior região do país"],"correct":0,"feedback":"O CFP é o órgão supremo dos Conselhos Regionais, tem jurisdição nacional e sede no Distrito Federal, e atua como tribunal superior de ética — julgando, em grau de recurso, os processos éticos decididos pelos CRPs. Ou seja: os CRPs julgam em primeira instância; o CFP, em última.","norm":"Lei nº 5.766/1971, arts. 2º e 6º"},{"q":"O Código de Ética Profissional do Psicólogo atualmente em vigor foi instituído por:","opts":["Resolução CFP nº 02/1987","Resolução CFP nº 10/2005","Resolução CFP nº 06/2019","Lei nº 5.766/1971"],"correct":1,"feedback":"O Código vigente foi aprovado pela Resolução CFP nº 10/2005, em vigor desde 27 de agosto de 2005, revogando o código anterior (Resolução CFP nº 02/1987). Atenção à pegadinha: a Resolução 06/2019 existe, mas trata de outro tema — a elaboração de documentos psicológicos.","norm":"Resolução CFP nº 10/2005"},{"q":"O Código de Ética de 2005 abre com sete 'Princípios Fundamentais' e, em seguida, organiza-se essencialmente em:","opts":["Um rol de transtornos e seus tratamentos autorizados","Tabelas de honorários por especialidade","Protocolos obrigatórios de avaliação psicológica","Deveres fundamentais e condutas vedadas ao psicólogo"],"correct":3,"feedback":"Depois dos sete princípios fundamentais — que abrem o documento com valores como o respeito à dignidade e à liberdade —, o Código define os deveres fundamentais do psicólogo e, na sequência, as condutas que lhe são vedadas. É essa lógica (princípios → deveres → vedações) que estrutura o restante do texto.","norm":"Resolução CFP nº 10/2005"}]},"2":{"label":"Nível 2 — Código de Ética: deveres e vedações","questions":[{"q":"Depois dos princípios fundamentais, o Código de Ética de 2005 organiza-se em deveres e vedações. Eles correspondem, respectivamente, a:","opts":["Art. 1º (vedações) e Art. 2º (deveres)","Art. 2º (deveres) e Art. 3º (vedações)","Art. 1º (deveres) e Art. 2º (vedações)","Art. 9º (deveres) e Art. 10 (vedações)"],"correct":2,"feedback":"No Código vigente, o Art. 1º lista os deveres fundamentais do psicólogo (em 12 alíneas) e o Art. 2º enumera as condutas vedadas (em 17 alíneas). Saber que dever está no Art. 1º e proibição no Art. 2º é a base de boa parte das questões de ética.","norm":"Resolução CFP nº 10/2005, arts. 1º e 2º"},{"q":"O primeiro dos princípios fundamentais do Código estabelece que o psicólogo baseará o seu trabalho:","opts":["No respeito e na promoção da liberdade, da dignidade, da igualdade e da integridade do ser humano","Na priorização dos interesses da instituição que o contrata","Na busca pela cura dos transtornos mentais acima de qualquer outro fim","Na neutralidade técnica, evitando qualquer posicionamento social"],"correct":0,"feedback":"O Princípio Fundamental I ancora todo o Código no respeito e na promoção da liberdade, dignidade, igualdade e integridade humana, apoiado nos valores da Declaração Universal dos Direitos Humanos. Os direitos humanos são, literalmente, o ponto de partida do texto.","norm":"Resolução CFP nº 10/2005, Princípios Fundamentais, I"},{"q":"Um psicólogo com formação apenas em clínica é convidado a conduzir a seleção de pessoal de uma empresa, área em que nunca atuou nem se capacitou. À luz dos deveres do Código, ele deve:","opts":["Pode assumir de imediato: o registro profissional habilita o psicólogo para qualquer área da psicologia","Pode assumir desde que um colega da área o supervisione informalmente durante o processo","Deve recusar em definitivo, pois quem se formou em clínica não pode migrar de área","Só deve assumir se antes obtiver a capacitação necessária para a demanda"],"correct":3,"feedback":"A pegadinha não é 'aceitar × recusar' — é a capacitação. O registro não habilita 'para qualquer área' (A); supervisão informal não supre a competência exigida (B); e não é que um clínico 'nunca possa' migrar (C) — pode, desde que se capacite. O Art. 1º, 'b', manda assumir só atividades para as quais se esteja capacitado pessoal, teórica e tecnicamente.","norm":"Resolução CFP nº 10/2005, art. 1º, 'b'"},{"q":"Ao divulgar seus serviços nas redes sociais, qual conduta é permitida ao psicólogo segundo o Código de Ética?","opts":["Garantir a cura da ansiedade em um número fixo de sessões","Informar o nome completo, o CRP e o número de registro profissional","Anunciar o menor preço da cidade como principal atrativo","Afirmar que entrega resultados superiores aos de outros profissionais"],"correct":1,"feedback":"O Art. 20 obriga a informar nome completo, CRP e número de registro, e veda: usar o preço como propaganda (d), fazer previsão taxativa de resultados (e), autopromoção em detrimento de colegas (f) e divulgação sensacionalista (h). Prometer cura em X sessões é previsão taxativa — proibida.","norm":"Resolução CFP nº 10/2005, art. 20"},{"q":"Um psicólogo passa a oferecer, vinculando seu título profissional, sessões de 'terapia de regressão a vidas passadas'. Segundo o Código de Ética, essa conduta é:","opts":["Fere o Código, pois é vedado vincular o título de psicólogo a técnicas que não sejam reconhecidas nem regulamentadas pela profissão","É admissível, desde que o cliente assine um termo de consentimento informado","É admissível, por estar amparada na liberdade de escolha de técnica do profissional","Seria vedada apenas se houvesse propaganda enganosa; a prática em si seria permitida"],"correct":0,"feedback":"A pegadinha é a alternativa que também fala em 'vedada', mas no lugar errado (D): o problema não é a propaganda — é vincular o título a uma técnica sem reconhecimento. Consentimento (B) ou 'liberdade de técnica' (C) não autorizam. O Art. 2º, 'f', veda prestar serviços ou vincular o título a procedimentos não regulamentados nem reconhecidos pela profissão.","norm":"Resolução CFP nº 10/2005, art. 2º, 'f'"},{"q":"Uma psicóloga é convidada a atuar como perita em um processo envolvendo uma cliente que ela atende em psicoterapia há dois anos. O Código de Ética orienta que ela:","opts":["Pode atuar, pois conhecer bem a pessoa aumenta a qualidade técnica da perícia","Não deve atuar, mas apenas porque a cliente poderia se sentir constrangida com a dupla função","Não deve atuar, pois o vínculo terapêutico prévio compromete a imparcialidade e a fidelidade dos resultados","Pode atuar, desde que informe ao juízo o atendimento prévio e obtenha o consentimento da cliente"],"correct":2,"feedback":"Duas alternativas dizem 'não deve atuar' — mas B acerta a conclusão pelo motivo errado: o problema não é o constrangimento da cliente, e sim o impedimento técnico-ético. Transparência e consentimento (D) não removem o conflito. O Art. 2º, 'k', veda periciar quando vínculos — atuais ou anteriores — possam afetar a qualidade do trabalho ou a fidelidade aos resultados.","norm":"Resolução CFP nº 10/2005, art. 2º, 'k'"},{"q":"Sobre a fixação de honorários, o Código de Ética determina que o psicólogo:","opts":["Cobre o mesmo valor de uma tabela nacional fixada pelo CRP, sem variação","Leve em conta a justa retribuição ao serviço e procure adequá-lo às condições de quem é atendido","Use o valor como principal forma de divulgação dos seus serviços","Mantenha exatamente o mesmo valor para todos, pois reduzir o preço para alguns seria discriminação"],"correct":1,"feedback":"O Art. 4º trata da remuneração: o psicólogo deve considerar a justa retribuição aos serviços e adequá-la, sempre que possível, às condições do atendido. Não há tabela nacional obrigatória, e usar o preço como propaganda é vedado (Art. 20, 'd').","norm":"Resolução CFP nº 10/2005, art. 4º"},{"q":"Ao participar de um programa de televisão na condição de psicólogo, o profissional deve, segundo o Código:","opts":["Comentar casos reais de pacientes, desde que omita os nomes","Aproveitar para promover o consultório e divulgar valores de atendimento","Apresentar a sua abordagem como a mais eficaz disponível","Zelar para que as informações disseminem o conhecimento sobre as atribuições, a base científica e o papel social da profissão"],"correct":3,"feedback":"O Art. 19 orienta que, ao participar de veículos de comunicação, o psicólogo zele para que as informações disseminem conhecimento sobre as atribuições, a base científica e o papel social da profissão. O foco é educativo e responsável — não a autopromoção nem o espetáculo.","norm":"Resolução CFP nº 10/2005, art. 19"},{"q":"Diante de uma dúvida ou de um caso omisso na aplicação do Código de Ética, a quem cabe, em primeira mão, resolvê-lo?","opts":["Ao Ministério Público, por se tratar de questão legal","À Justiça do Trabalho da respectiva região","Aos Conselhos Regionais de Psicologia, cabendo ao CFP firmar jurisprudência","Exclusivamente ao psicólogo envolvido, conforme a própria consciência"],"correct":2,"feedback":"Pelo Art. 22, as dúvidas e os casos omissos são resolvidos pelos Conselhos Regionais (ad referendum do CFP); pelo Art. 23, compete ao CFP firmar jurisprudência sobre os casos omissos e incorporá-la ao Código. A regulação da ética é interna ao Sistema Conselhos.","norm":"Resolução CFP nº 10/2005, arts. 22 e 23"},{"q":"Um psicólogo começa a prestar consultoria financeira paga ao mesmo cliente que atende em psicoterapia. Em relação ao Código de Ética, isso configura:","opts":["Possível infração, pois é vedado estabelecer com o atendido relação que possa interferir negativamente nos objetivos do serviço","Conduta neutra, já que são serviços de naturezas diferentes","Conduta recomendada, pois fortalece o vínculo terapêutico","Conduta permitida, desde que formalizada em contratos separados para cada serviço"],"correct":0,"feedback":"O Art. 2º, alínea 'j', veda estabelecer com a pessoa atendida (ou familiar/terceiro vinculado) relação que possa interferir negativamente nos objetivos do serviço prestado. São as chamadas relações múltiplas, que comprometem a imparcialidade e o enquadramento do atendimento.","norm":"Resolução CFP nº 10/2005, art. 2º, 'j'"}]},"3":{"label":"Nível 3 — Sigilo, documentos e avaliação","questions":[{"q":"Um juiz determina que um psicólogo entregue todas as informações sobre uma pessoa que ele atende. Diante dessa ordem judicial, o psicólogo:","opts":["Deve entregar o prontuário completo, pois ordem judicial sempre afasta o sigilo","Poderá prestar informações considerando o previsto no Código, resguardando o sigilo e limitando-se ao necessário","Deve recusar-se a fornecer qualquer informação, pois o sigilo é absoluto e inviolável","Só pode responder se a pessoa atendida autorizar previamente por escrito"],"correct":1,"feedback":"Pega muita gente: o instinto é 'o juiz mandou, entrega tudo' ou 'sigilo é sagrado, não falo nada'. O Art. 11 fica no meio — requisitado a depor, o psicólogo poderá prestar informações considerando o Código, resguardando o sigilo e limitando-se ao necessário. A ordem judicial não o transforma em repassador automático, nem o sigilo é uma muralha absoluta.","norm":"Resolução CFP nº 10/2005, art. 11"},{"q":"Durante o atendimento, uma pessoa revela um risco concreto e iminente à própria vida, e o psicólogo avalia que manter o sigilo seria mais danoso do que rompê-lo. Nesse caso, ele:","opts":["Está impedido de agir, pois romper o sigilo o exporia a processo ético","Deve divulgar amplamente a situação para que alguém intervenha","Só pode agir mediante autorização prévia do Conselho Regional","Poderá decidir pela quebra do sigilo, guiando-se pela busca do menor prejuízo"],"correct":3,"feedback":"É o caso que mais faz hesitar — mas o Código resolve. Havendo conflito entre o sigilo (Art. 9º) e os princípios de proteção da pessoa, o psicólogo poderá decidir pela quebra, guiando-se pelo menor prejuízo (Art. 10). Não é proibido agir, nem é caso de 'divulgar amplamente': é uma comunicação ponderada, ao destinatário certo. E, ao fazê-la, restringe-se ao estritamente necessário.","norm":"Resolução CFP nº 10/2005, art. 10"},{"q":"Ao decidir, eticamente, por quebrar o sigilo, o psicólogo deve:","opts":["Apenas as informações estritamente necessárias à finalidade que justificou a quebra","O conteúdo que o solicitante pedir, desde que ele justifique a necessidade","Todo o histórico do atendimento, para que o contexto não seja mal interpretado","Nada além da confirmação de que a pessoa é atendida, qualquer que seja a finalidade"],"correct":0,"feedback":"O parágrafo único do Art. 10 é claro: revela-se só o estritamente necessário à finalidade que motivou a quebra. Por isso erram tanto exagerar — todo o histórico (C) — quanto deixar o solicitante definir o escopo (B); e também ser rígido demais (D), limitando-se a 'confirmar que atende' quando a finalidade pode exigir um pouco mais. Nem tudo, nem de menos.","norm":"Resolução CFP nº 10/2005, art. 10, parágrafo único"},{"q":"No atendimento a uma criança, quando for necessário comunicar algo aos responsáveis, o psicólogo deve transmitir:","opts":["Todo o conteúdo trazido pela criança nas sessões","Nada, pois o sigilo no atendimento a menores é absoluto","O estritamente essencial para que se promovam medidas em benefício da criança","Apenas o que for solicitado formalmente por escrito pelos pais"],"correct":2,"feedback":"O Art. 13 determina que, no atendimento a criança, adolescente ou interdito, se comunique aos responsáveis o estritamente essencial para promover medidas em benefício do atendido. Protege-se a confiança do vínculo sem abrir mão do cuidado necessário — nem tudo, nem nada.","norm":"Resolução CFP nº 10/2005, art. 13"},{"q":"Para iniciar um acompanhamento não eventual de um adolescente, o psicólogo precisa:","opts":["Obter autorização de ao menos um dos responsáveis, observada a legislação vigente","Da autorização expressa de ambos os pais, sem exceção","Apenas do consentimento verbal do próprio adolescente","De autorização judicial prévia em todos os casos"],"correct":0,"feedback":"O Art. 8º exige, para o atendimento não eventual de criança, adolescente ou interdito, autorização de ao menos um dos responsáveis, observada a legislação. Não se exige a presença de ambos os pais nem ordem judicial como regra — basta um responsável, e convém registrar a autorização por escrito.","norm":"Resolução CFP nº 10/2005, art. 8º"},{"q":"Ao registrar informações em documentos de uma equipe multiprofissional, o psicólogo deve incluir:","opts":["Todos os detalhes do atendimento psicológico, para que a equipe tenha o quadro completo","Nada do atendimento psicológico, pois seu conteúdo é integralmente sigiloso à equipe","O diagnóstico e as hipóteses clínicas ainda em aberto, omitindo apenas as anotações pessoais","Apenas o necessário ao cumprimento dos objetivos do trabalho, preservando o sigilo do que não for essencial"],"correct":3,"feedback":"O Art. 12 manda registrar só o necessário aos objetivos do trabalho. Exagerar (todos os detalhes, A) e blindar tudo (nada, B) erram nas pontas; e C é a pegadinha — diagnóstico e hipóteses em aberto expõem mais do que o trabalho em equipe exige. Compartilha-se o essencial, preservando o resto.","norm":"Resolução CFP nº 10/2005, art. 12"},{"q":"Qual dos itens abaixo NÃO é uma modalidade de documento psicológico prevista na Resolução CFP 06/2019?","opts":["Atestado psicológico","Prontuário judicial obrigatório","Laudo psicológico","Parecer psicológico"],"correct":1,"feedback":"A Resolução 06/2019 prevê: declaração, atestado, relatório psicológico, relatório multiprofissional, laudo e parecer. 'Prontuário judicial obrigatório' não existe como modalidade — o prontuário é um registro do trabalho, não um dos documentos elencados pela resolução.","norm":"Resolução CFP nº 06/2019"},{"q":"Sobre a Declaração psicológica, é correto afirmar que ela:","opts":["Deve conter o diagnóstico e os sintomas observados no atendimento","Substitui o laudo em processos de avaliação psicológica","Registra dados objetivos como comparecimento e acompanhamento, sendo vedado nela registrar sintomas ou estados psicológicos","Só pode ser emitida por determinação judicial"],"correct":2,"feedback":"A Declaração registra apenas dados objetivos (comparecimento, acompanhamento, dias e horários). A própria Resolução 06/2019 veda registrar nela sintomas, situações ou estados psicológicos — para isso existem o atestado e o laudo. É uma das pegadinhas mais cobradas sobre documentos.","norm":"Resolução CFP nº 06/2019, art. 9º"},{"q":"A diferença entre laudo e parecer psicológico, na Resolução 06/2019, é que:","opts":["O laudo é o resultado de um processo de avaliação psicológica; o parecer responde a uma questão-problema específica, como uma consulta","O laudo é informal e o parecer é o documento mais completo dos dois","Ambos são sinônimos, mudando apenas o nome conforme a região","O parecer só pode ser emitido por peritos judiciais; o laudo, por qualquer psicólogo"],"correct":0,"feedback":"O laudo (art. 13) é a peça técnico-científica que resulta de um processo de avaliação psicológica, para subsidiar uma decisão. O parecer (art. 14) é um pronunciamento que responde a uma questão-problema ou analisa outro documento — funciona como resposta a uma consulta. Confundir os dois é erro clássico.","norm":"Resolução CFP nº 06/2019, arts. 13 e 14"},{"q":"Para que um teste psicológico possa ser usado profissionalmente no Brasil, é necessário que:","opts":["Tenha sido publicado por uma editora especializada em psicologia","Seja aprovado e registrado pelo Ministério da Saúde","Tenha parecer favorável no SATEPSI, sendo o seu uso privativo do psicólogo","Esteja validado em pelo menos um país estrangeiro"],"correct":2,"feedback":"Pela Resolução 31/2022, só podem ser usados profissionalmente os testes com parecer favorável no SATEPSI (Sistema de Avaliação de Testes Psicológicos), que verifica validade, precisão e normas. Além disso, o uso de testes psicológicos é privativo do psicólogo. Teste não avaliado pelo CFP não pode ser utilizado.","norm":"Resolução CFP nº 31/2022 (SATEPSI)"}]},"4":{"label":"Nível 4 — Atuação contemporânea","questions":[{"q":"Um psicólogo quer começar a atender online em 2026. Sobre o cadastro na plataforma e-Psi, é correto afirmar que ele:","opts":["Continua obrigatório antes de qualquer atendimento online","Deixou de ser exigido — a Resolução 09/2024 descontinuou o cadastro e a própria plataforma e-Psi","É exigido apenas para atender pacientes de outros estados","Passou a ser feito diretamente no site do CRP de cada região"],"correct":1,"feedback":"Aqui mora a pegadinha do material desatualizado. A Resolução 09/2024 (TDICs) revogou a 11/2018 e descontinuou o cadastro na plataforma e-Psi, que foi desativada. Hoje basta inscrição ativa no CRP e seguir as diretrizes éticas. Quem estudou por apostila antiga ainda responde 'e-Psi obrigatório' — e erra.","norm":"Resolução CFP nº 09/2024"},{"q":"Pela Resolução 09/2024, sobre onde o profissional e a pessoa atendida precisam estar num atendimento online válido:","opts":["O profissional pode estar em qualquer país; basta a pessoa atendida estar no Brasil","Ambos precisam estar, obrigatoriamente, no mesmo estado","O profissional precisa estar em território nacional; a pessoa atendida pode estar em outro estado ou no exterior","Não há qualquer restrição de localização para o profissional ou para a pessoa atendida"],"correct":2,"feedback":"A restrição territorial recai sobre o profissional: para atuar pela regulação brasileira, ele precisa estar em território nacional. Já a pessoa atendida pode estar em outro estado ou até no exterior. Quem inverte isso (acha que o que importa é o paciente estar no Brasil) cai na armadilha.","norm":"Resolução CFP nº 09/2024"},{"q":"No atendimento mediado por tecnologias digitais (TDICs), quanto ao contrato e ao registro documental:","opts":["Aplicam-se as mesmas exigências do presencial: contrato de prestação de serviços e registro documental","O registro é exigido, mas o contrato é dispensado por ser atendimento a distância","Basta o aceite verbal da pessoa atendida na primeira sessão, sem documentos","A gravação das sessões substitui o contrato e o registro"],"correct":0,"feedback":"O atendimento online não é 'informal': exige contrato de prestação de serviços e registro documental, tal como o presencial. A armadilha é a alternativa que aceita parte (registro sim, contrato não) — ambos são exigidos. A modalidade muda o meio, não os deveres.","norm":"Resolução CFP nº 09/2024 c/c Resolução CFP nº 06/2019"},{"q":"Um cliente procura atendimento pedindo uma 'terapia para deixar de ser homossexual'. Segundo a Resolução 01/1999, a conduta correta é:","opts":["Recusar e dispensar o cliente, já que o pedido contraria o Código","Oferecer o acompanhamento, desde que com consentimento informado por escrito","Encaminhar a um colega que trabalhe com 'reorientação sexual'","Acolher o cliente e trabalhar o sofrimento associado, sem propor qualquer 'reorientação' — a homossexualidade não é doença"],"correct":3,"feedback":"Pegadinha dupla: recusar e dispensar o cliente (A) também erra, porque abandona quem buscou ajuda; e 'consentimento por escrito' (B) não legitima uma prática vedada. A Resolução 01/1999 proíbe tratar, curar ou reverter a homossexualidade — o certo é acolher o sofrimento (muitas vezes ligado ao preconceito) sem propor reorientação.","norm":"Resolução CFP nº 01/1999"},{"q":"Segundo a Resolução 01/2018, a atuação adequada do psicólogo com pessoas transexuais e travestis inclui:","opts":["Afirmar a identidade autodeterminada da pessoa e atuar contra a transfobia, sem patologizar a condição","Acolher a pessoa, mas exigir laudo que confirme a identidade de gênero antes de prosseguir","Apoiar a pessoa e, havendo sofrimento, ajudá-la a se reconciliar com o sexo designado ao nascer","Atender, mas evitar abordar a identidade de gênero, por ser assunto exclusivamente médico"],"correct":0,"feedback":"As três alternativas erradas soam acolhedoras, mas escorregam: exigir laudo (B) patologiza; ajudar a 'reconciliar com o sexo designado' (C) é adequação disfarçada; e evitar o tema/terceirizar (D) é omissão. A 01/2018 parte da despatologização e da autodeterminação: afirmar a identidade e atuar contra a transfobia.","norm":"Resolução CFP nº 01/2018"},{"q":"Diante de uma manifestação de racismo no ambiente de trabalho, a Resolução 18/2002 espera que o psicólogo:","opts":["Aborde a situação apenas se o cliente afetado solicitar, para respeitar sua autonomia","Encaminhe a questão a um colega especializado em relações raciais, por não ser sua área","Atue ativamente contra a discriminação, não se omitindo nem sendo conivente com o racismo","Trate o episódio como conflito interpessoal comum, sem enquadrá-lo como racismo"],"correct":2,"feedback":"As alternativas erradas parecem condutas profissionais razoáveis, mas todas resultam em omissão: esperar o cliente pedir, terceirizar para um 'especialista' ou rebaixar o racismo a 'conflito comum'. A 18/2002 exige postura ativa — não ser conivente nem se omitir perante o preconceito e a discriminação racial.","norm":"Resolução CFP nº 18/2002"},{"q":"A Resolução CFP 13/2022, sobre o exercício da psicoterapia, estabelece que o sigilo:","opts":["É dispensado quando a psicoterapia é feita em grupo, por ser prática mais aberta","Aplica-se integralmente à psicoterapia, conforme as regras do Código de Ética","É mais flexível do que no atendimento clínico individual","Só passa a valer após o término do processo psicoterápico"],"correct":1,"feedback":"As três alternativas erradas tentam 'afrouxar' o sigilo em alguma condição (grupo, comparação com a clínica individual, só após o término). Nenhuma procede: a Resolução 13/2022 reafirma que as regras de sigilo do Código se aplicam integralmente à psicoterapia.","norm":"Resolução CFP nº 13/2022"},{"q":"Qual resolução está atualmente em vigor para o atendimento psicológico mediado por tecnologias digitais?","opts":["Resolução CFP 11/2018","Resolução CFP 04/2020","Resolução CFP 06/2019","Resolução CFP 09/2024"],"correct":3,"feedback":"A norma vigente é a Resolução 09/2024 (TDICs), que revogou tanto a 11/2018 quanto a 04/2020 (esta editada na pandemia). A 06/2019 trata de documentos psicológicos, não de atendimento online. Citar a 11/2018 como vigente é o erro típico de quem estudou por material anterior a agosto de 2024.","norm":"Resolução CFP nº 09/2024"},{"q":"Um psicólogo clínico, sem formação em avaliação neuropsicológica, recebe uma demanda desse tipo para atender online. O que a ética indica?","opts":["Pode aceitar, desde que supervisione o caso à distância com um colega neuropsicólogo","Deve recusar sempre: um psicólogo clínico nunca pode realizar avaliação neuropsicológica","Só deve atuar se for capacitado para a demanda — o meio digital não cria a competência que ele não tem","Pode aceitar para uma triagem inicial e encaminhar caso note algo mais complexo"],"correct":2,"feedback":"Duas armadilhas em sentidos opostos: 'nunca pode' (B) é falso — ele pode se capacitar; e os 'sim' disfarçados (supervisão à distância em A, 'só uma triagem' em D) não suprem a competência específica exigida. A regra é simples: o online regula o meio, não amplia competências. Só atua quem é capacitado para aquela demanda.","norm":"Resolução CFP nº 09/2024 c/c Código de Ética, art. 1º, 'b'"},{"q":"Uma psicóloga quer anunciar online um serviço de 'fortalecimento da identidade de gênero conforme o sexo biológico'. Sobre isso:","opts":["É vedado: o próprio serviço configura prática de 'adequação' de identidade, contrária às resoluções","É vedado apenas o anúncio; o serviço, em consultório, seria permitido","É permitido, desde que a psicóloga tenha formação específica na área","É permitido, pois anunciar serviços é livre, desde que sem termos pejorativos"],"correct":0,"feedback":"A pegadinha é a alternativa que também diz 'vedado', mas localiza o problema no lugar errado (só no anúncio). O problema é o serviço em si: a 'adequação' de identidade de gênero é vedada onde quer que ocorra (Res. 01/1999 e 01/2018). Formação específica ou ausência de termos pejorativos não legitimam um serviço proibido.","norm":"Resoluções CFP nº 01/1999 e nº 01/2018"}]},"5":{"label":"Nível 5 — Casos e processo disciplinar","questions":[{"q":"As penalidades previstas para a infração ética, da mais branda à mais grave, são:","opts":["Multa, advertência, prisão e cassação do registro","Advertência, multa, censura pública, suspensão e cassação do exercício profissional","Advertência, suspensão, multa e expulsão definitiva da categoria","Notificação, multa, censura e banimento nacional"],"correct":1,"feedback":"As penalidades (art. 21 do Código de Ética e art. 139 do CPD) são, em ordem crescente de gravidade: advertência, multa, censura pública, suspensão do exercício (até 30 dias) e cassação. Não existe 'prisão', 'expulsão' ou 'banimento' — são sanções administrativas do Conselho, não penais.","norm":"Código de Ética, art. 21 / CPD (Res. CFP 11/2019)"},{"q":"Diferentemente das demais penalidades, a advertência é aplicada:","opts":["Em caráter confidencial (sigiloso), enquanto multa, censura, suspensão e cassação são públicas","Sempre publicada no Diário Oficial da União","Somente a profissionais reincidentes","Apenas pelo CFP, nunca pelo CRP"],"correct":0,"feedback":"A advertência tem caráter confidencial; já a multa, a censura pública, a suspensão e a cassação são publicadas (Diário Oficial, sítio do CRP etc.). É a sanção mais branda e a única reservada — uma pegadinha comum de prova.","norm":"CPD (Res. CFP 11/2019)"},{"q":"As penalidades de suspensão e de cassação do exercício profissional, aplicadas pelo CRP, dependem de:","opts":["Homologação pelo Ministério do Trabalho","Decisão judicial transitada em julgado","Aprovação em assembleia da categoria","Reexame necessário (ad referendum) pelo Conselho Federal de Psicologia"],"correct":3,"feedback":"Por serem as sanções mais graves, a suspensão (até 30 dias) e a cassação só se efetivam com reexame necessário (ad referendum) do CFP. O CRP aplica, mas o CFP confirma — coerente com o papel do CFP como tribunal superior de ética.","norm":"Código de Ética, art. 21 / CPD (Res. CFP 11/2019)"},{"q":"No processo ético-disciplinar, o julgamento em primeira instância cabe ao:","opts":["CRP, funcionando como tribunal regional de ética, cabendo recurso ao CFP","CFP, com recurso ao Superior Tribunal de Justiça","Ministério Público Federal","Próprio psicólogo denunciado, em autodefesa"],"correct":0,"feedback":"O CRP julga em primeira instância (tribunal regional de ética); da decisão cabe recurso ao CFP, instância recursal e tribunal superior de ética. É a mesma estrutura do Sistema Conselhos vista no Nível 1.","norm":"Lei nº 5.766/1971 c/c CPD (Res. CFP 11/2019)"},{"q":"As infrações éticas cometidas por psicólogos prescrevem em:","opts":["2 anos, a contar da data da denúncia","10 anos, em qualquer hipótese","5 anos, a contar do conhecimento do fato","Não prescrevem, por serem de ordem pública"],"correct":2,"feedback":"Pelo CPD, as infrações éticas prescrevem em 5 anos, contados do conhecimento do fato. Há ainda a prescrição intercorrente: processo parado por mais de 3 anos é arquivado. E a prescrição é matéria de ordem pública — não pode ser ignorada pelos Conselhos.","norm":"CPD (Res. CFP 11/2019)"},{"q":"O processo ético-disciplinar dos psicólogos é regido, atualmente, pelo Código de Processamento Disciplinar, instituído pela:","opts":["Resolução CFP nº 11/2019, que revogou a Resolução 06/2007","Resolução CFP nº 10/2005","Resolução CFP nº 06/2019","Lei nº 4.119/1962"],"correct":0,"feedback":"O CPD vigente é a Resolução CFP nº 11/2019, que substituiu a 06/2007. Cuidado para não confundir: a 10/2005 é o Código de Ética; a 06/2019 trata de documentos psicológicos. Cada norma cuida de um tema.","norm":"Resolução CFP nº 11/2019 (CPD)"},{"q":"Uma empresa contratante pede ao psicólogo do trabalho o resultado da avaliação de um funcionário. O que o psicólogo deve comunicar?","opts":["O laudo integral, já que a empresa custeou a avaliação e é a destinatária","Um resumo com as hipóteses diagnósticas e o histórico clínico levantado na entrevista","Todo o conteúdo, desde que omita o nome do funcionário","Apenas as informações necessárias à finalidade da avaliação, preservando o conteúdo sigiloso"],"correct":3,"feedback":"As armadilhas são as do 'meio-termo': um 'resumo' que ainda assim revela diagnóstico e histórico (B), ou entregar tudo apenas anonimizando o nome (C). Nenhuma resolve — o sigilo protege quem é atendido, e o psicólogo comunica só o que a finalidade da avaliação exige, não o conteúdo clínico.","norm":"Código de Ética, arts. 9º e 12, c/c Res. CFP 06/2019"},{"q":"Um psicólogo sabe que um colega vem oferecendo 'cura gay'. Qual a conduta ética mais adequada?","opts":["Expor o colega publicamente nas redes para alertar potenciais clientes","Não se envolver, pois cada profissional responde apenas por seus próprios atos","Conversar reservadamente com o colega e, persistindo a prática, levar o fato ao Conselho","Aguardar que algum cliente lesado formalize a denúncia antes de tomar qualquer atitude"],"correct":2,"feedback":"Não ser conivente é um dever — mas o caminho importa. Expor o colega publicamente (A) cria outra falta ética; 'não se envolver' (B) e 'esperar a denúncia de um cliente' (D) são, elas mesmas, omissão. A via proporcional é tratar diretamente e, persistindo, comunicar ao Conselho.","norm":"Código de Ética, arts. 1º e 2º, c/c Res. CFP 01/1999"},{"q":"Ao atender online de casa, um psicólogo percebe que familiares circulam pelo cômodo e podem ouvir a sessão. O mais adequado é:","opts":["Seguir a sessão e orientar a pessoa atendida a também buscar um local reservado, dividindo a responsabilidade","Garantir um ambiente reservado — preservar o sigilo no online é dever do profissional, como no presencial","Continuar normalmente, já que o sigilo no online é responsabilidade de cada um em seu próprio ambiente","Pedir o consentimento da pessoa atendida para prosseguir mesmo sem total privacidade"],"correct":1,"feedback":"As alternativas erradas tentam transferir ou negociar o dever: 'dividir a responsabilidade' (A), jogá-la só para a pessoa atendida (C) ou resolver com consentimento (D). O dever de garantir um ambiente sigiloso é do profissional e não se transfere — o consentimento não conserta um setting inseguro do lado dele.","norm":"Res. CFP 09/2024 c/c Código de Ética, art. 9º"},{"q":"Um psicólogo encerrará suas atividades e precisa decidir o que fazer com os prontuários dos pacientes. A conduta correta é:","opts":["Destruí-los imediatamente, garantindo que ninguém mais tenha acesso","Entregar os prontuários aos próprios pacientes e encerrar sua responsabilidade","Zelar pelo destino e pela guarda dos documentos, preservando o sigilo mesmo após o encerramento","Mantê-los arquivados em casa por tempo indefinido, sem outra providência"],"correct":2,"feedback":"As armadilhas soam responsáveis, mas erram: destruir por impulso (A) ou guardar em casa sem critério (D) não é cuidar do destino; e 'entregar tudo aos pacientes e lavar as mãos' (B) também não. O dever é zelar pela guarda e pelo destino dos documentos, com o sigilo preservado — ele não acaba quando as atividades terminam.","norm":"Código de Ética do Psicólogo (dever de sigilo, arts. 9º e seguintes)"}]}};
+const LEVEL_DESC = {"1":"Fundamentos e estrutura da profissão","2":"Código de Ética: deveres e vedações","3":"Sigilo, documentos e avaliação","4":"Atuação contemporânea","5":"Casos e processo disciplinar"};
+const MAX_LEVEL = 5;
+let unlocked = {"1":true,"2":false,"3":false,"4":false,"5":false};
+let completed = {"1":false,"2":false,"3":false,"4":false,"5":false};
+let state = { currentLevel: null, currentQ: 0, score: 0, answered: false, lastPassed: false };
+
+function startLevel(lvl) {
+  if (!LEVELS[lvl] || !unlocked[lvl]) return;
+  state.currentLevel = lvl; state.currentQ = 0; state.score = 0; state.answered = false;
+  document.getElementById('level-select').style.display = 'none';
+  document.getElementById('completion-banner').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('quiz-screen').style.display = 'block';
+  document.getElementById('quiz-level-label').textContent = `Nível ${lvl}`;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const level = LEVELS[state.currentLevel];
+  const q = level.questions[state.currentQ];
+  const total = level.questions.length;
+  state.answered = false;
+  document.getElementById('feedback-box').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('question-counter').textContent = `Pergunta ${state.currentQ + 1} de ${total}`;
+  document.getElementById('progress-fill').style.width = `${(state.currentQ / total) * 100}%`;
+  document.getElementById('question-text').textContent = q.q;
+  const list = document.getElementById('options-list');
+  list.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-letter">${letters[i]}</span><span>${opt}</span>`;
+    btn.onclick = () => selectOption(i, btn);
+    list.appendChild(btn);
+  });
+}
+
+function selectOption(idx, btn) {
+  if (state.answered) return;
+  state.answered = true;
+  const q = LEVELS[state.currentLevel].questions[state.currentQ];
+  const allBtns = document.querySelectorAll('.option-btn');
+  allBtns.forEach(b => b.disabled = true);
+  const feedbackBox = document.getElementById('feedback-box');
+  if (idx === q.correct) {
+    state.score++;
+    btn.classList.add('correct');
+    feedbackBox.className = 'feedback-box correct';
+    document.getElementById('feedback-label').textContent = '✓ Correto';
+  } else {
+    btn.classList.add('wrong');
+    allBtns[q.correct].classList.add('reveal-correct');
+    feedbackBox.className = 'feedback-box wrong';
+    document.getElementById('feedback-label').textContent = '✗ Incorreto';
+  }
+  const normHtml = q.norm ? `<span class="feedback-norm">📌 Base: ${q.norm}</span>` : '';
+  document.getElementById('feedback-text').innerHTML = q.feedback + normHtml;
+  feedbackBox.style.display = 'block';
+  const nextBtn = document.getElementById('next-btn');
+  const isLast = state.currentQ === LEVELS[state.currentLevel].questions.length - 1;
+  nextBtn.textContent = isLast ? 'Ver resultado →' : 'Próxima pergunta →';
+  nextBtn.style.display = 'block';
+}
+
+function nextQuestion() {
+  state.currentQ++;
+  if (state.currentQ >= LEVELS[state.currentLevel].questions.length) showResult();
+  else renderQuestion();
+}
+
+function showResult() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'block';
+  const lvl = state.currentLevel;
+  const total = LEVELS[lvl].questions.length;
+  const pct = Math.round((state.score / total) * 100);
+  const passed = pct >= PASS;
+  state.lastPassed = passed;
+  document.getElementById('result-score').textContent = `${state.score}/${total}`;
+  document.getElementById('result-score-label').textContent = `${pct}% de acerto`;
+  let emoji, title, msg;
+  if (pct === 100) { emoji = '🏆'; title = 'Perfeito!'; msg = 'Gabaritou — distinção entre as abordagens contextuais na ponta da língua.'; }
+  else if (pct >= PASS) { emoji = '🎯'; title = 'Aprovado!'; msg = 'Sólido. Revise os itens que escaparam e siga em frente com confiança.'; }
+  else { emoji = '📖'; title = 'Revisar antes de continuar'; msg = `Abaixo de ${PASS}%. Revise o conteúdo deste nível e tente novamente — é preciso ${PASS}% para desbloquear o próximo.`; }
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-message').textContent = msg;
+
+  if (passed) {
+    completed[lvl] = true;
+    if (lvl < MAX_LEVEL) unlocked[lvl + 1] = true;
+  }
+  const nextBtn = document.getElementById('next-level-btn');
+  if (lvl >= MAX_LEVEL) {
+    nextBtn.textContent = passed ? 'Módulo concluído ✓' : 'Refazer para concluir';
+    nextBtn.disabled = passed;
+  } else {
+    nextBtn.textContent = 'Próximo nível →';
+    nextBtn.disabled = !passed;
+  }
+  updateLevelCards();
+}
+
+function updateLevelCards() {
+  for (let lvl = 1; lvl <= MAX_LEVEL; lvl++) {
+    const card = document.getElementById('card-' + lvl);
+    const status = document.getElementById('status-' + lvl);
+    card.classList.remove('completed', 'locked');
+    card.onclick = null;
+    if (completed[lvl]) {
+      card.classList.add('completed');
+      status.className = 'level-status done';
+      status.textContent = '✓ Concluído';
+      card.onclick = () => startLevel(lvl);
+    } else if (unlocked[lvl]) {
+      status.className = 'level-status available';
+      status.textContent = 'Disponível';
+      card.onclick = () => startLevel(lvl);
+    } else {
+      card.classList.add('locked');
+      status.className = 'level-status locked-txt';
+      status.textContent = '🔒 Bloqueado';
+    }
+  }
+}
+
+function retryLevel() { startLevel(state.currentLevel); }
+
+function goNextLevel() {
+  const next = state.currentLevel + 1;
+  if (next <= MAX_LEVEL && unlocked[next]) startLevel(next);
+  else backToMenu();
+}
+
+function backToMenu() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('level-select').style.display = 'block';
+  updateLevelCards();
+  const allDone = Object.keys(completed).every(k => completed[k]);
+  document.getElementById('completion-banner').style.display = allDone ? 'block' : 'none';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Avaliação Psicológica</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117; --surface: #181c27; --surface2: #1f2535; --border: #2a3045;
+    --accent: #4f8ef7; --accent2: #7c5cbf; --success: #3ecf8e; --error: #f75f5f;
+    --warning: #f7b955; --text: #e8eaf0; --text-dim: #8892a4; --text-dimmer: #4a5568;
+    --radius: 14px; --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-weight: 400; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px 60px; }
+  .module-header { width: 100%; max-width: 720px; margin-bottom: 32px; text-align: center; }
+  .module-tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); background: rgba(79,142,247,.12); border: 1px solid rgba(79,142,247,.25); border-radius: 20px; padding: 4px 14px; margin-bottom: 14px; }
+  .module-title { font-family: 'DM Serif Display', serif; font-size: clamp(28px, 6vw, 42px); line-height: 1.15; color: var(--text); margin-bottom: 8px; }
+  .module-title em { font-style: italic; color: var(--accent); }
+  .module-subtitle { font-size: 15px; color: var(--text-dim); font-weight: 300; }
+  #level-select { width: 100%; max-width: 720px; }
+  .levels-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
+  .level-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 18px 14px; cursor: pointer; transition: all .2s ease; text-align: center; position: relative; overflow: hidden; }
+  .level-card::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity .2s; }
+  .level-card.l1::before { background: linear-gradient(135deg, rgba(79,142,247,.08), transparent); }
+  .level-card.l2::before { background: linear-gradient(135deg, rgba(124,92,191,.08), transparent); }
+  .level-card.l3::before { background: linear-gradient(135deg, rgba(62,207,142,.08), transparent); }
+  .level-card.l4::before { background: linear-gradient(135deg, rgba(247,185,85,.08), transparent); }
+  .level-card.l5::before { background: linear-gradient(135deg, rgba(247,95,95,.08), transparent); }
+  .level-card:hover:not(.locked)::before { opacity: 1; }
+  .level-card:hover:not(.locked) { border-color: rgba(79,142,247,.4); transform: translateY(-2px); }
+  .level-card.locked { opacity: .4; cursor: not-allowed; }
+  .level-card.completed { border-color: var(--success); }
+  .level-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+  .level-name { font-family: 'DM Serif Display', serif; font-size: 15px; margin-bottom: 3px; }
+  .level-desc { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+  .level-status { margin-top: 8px; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  .level-status.done { color: var(--success); }
+  .level-status.locked-txt { color: var(--text-dimmer); }
+  .level-status.available { color: var(--accent); }
+  #quiz-screen { width: 100%; max-width: 720px; display: none; }
+  .quiz-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .back-btn { background: none; border: 1px solid var(--border); color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 6px 14px; border-radius: 20px; cursor: pointer; transition: all .2s; }
+  .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .quiz-level-badge { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); }
+  .progress-bar-wrap { background: var(--surface2); border-radius: 99px; height: 6px; width: 100%; margin-bottom: 28px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .4s ease; }
+  .question-counter { font-size: 12px; color: var(--text-dimmer); margin-bottom: 10px; text-align: right; }
+  .question-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 28px 24px; margin-bottom: 16px; }
+  .question-text { font-family: 'DM Serif Display', serif; font-size: clamp(16px, 3.5vw, 21px); line-height: 1.4; color: var(--text); }
+  .options-list { display: flex; flex-direction: column; gap: 10px; }
+  .option-btn { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px 18px; text-align: left; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: all .18s ease; display: flex; align-items: flex-start; gap: 12px; line-height: 1.45; }
+  .option-letter { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; min-width: 24px; border-radius: 6px; background: var(--surface2); font-size: 12px; font-weight: 600; color: var(--text-dim); transition: all .18s; }
+  .option-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(79,142,247,.06); }
+  .option-btn:hover:not(:disabled) .option-letter { background: var(--accent); color: #fff; }
+  .option-btn.correct { border-color: var(--success); background: rgba(62,207,142,.08); }
+  .option-btn.correct .option-letter { background: var(--success); color: #fff; }
+  .option-btn.wrong { border-color: var(--error); background: rgba(247,95,95,.08); }
+  .option-btn.wrong .option-letter { background: var(--error); color: #fff; }
+  .option-btn.reveal-correct { border-color: var(--success); background: rgba(62,207,142,.05); opacity: .7; }
+  .option-btn:disabled { cursor: default; }
+  .feedback-box { border-radius: var(--radius-sm); padding: 16px 18px; margin-bottom: 16px; font-size: 14px; line-height: 1.6; display: none; animation: slideUp .25s ease; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .feedback-box.correct { background: rgba(62,207,142,.1); border: 1px solid rgba(62,207,142,.3); color: #a8f0cf; }
+  .feedback-box.wrong { background: rgba(247,95,95,.1); border: 1px solid rgba(247,95,95,.3); color: #ffa8a8; }
+  .feedback-label { font-weight: 600; font-size: 13px; letter-spacing: .04em; margin-bottom: 5px; text-transform: uppercase; }
+  .feedback-norm { display: block; margin-top: 8px; font-size: 12px; color: var(--text-dim); font-style: italic; }
+  .next-btn { width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; border-radius: var(--radius-sm); color: #fff; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; padding: 15px; cursor: pointer; transition: opacity .2s, transform .2s; display: none; }
+  .next-btn:hover { opacity: .9; transform: translateY(-1px); }
+  #result-screen { width: 100%; max-width: 720px; display: none; text-align: center; }
+  .result-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 40px 28px; }
+  .result-emoji { font-size: 52px; margin-bottom: 16px; display: block; }
+  .result-title { font-family: 'DM Serif Display', serif; font-size: 28px; margin-bottom: 8px; }
+  .result-score { font-size: 48px; font-weight: 600; color: var(--accent); margin: 16px 0 4px; }
+  .result-score-label { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; }
+  .result-message { font-size: 15px; color: var(--text-dim); line-height: 1.6; margin-bottom: 28px; max-width: 460px; margin-left: auto; margin-right: auto; }
+  .result-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn-outline { background: none; border: 1.5px solid var(--border); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; padding: 12px 22px; border-radius: var(--radius-sm); cursor: pointer; transition: all .2s; }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; padding: 12px 22px; border-radius: var(--radius-sm); cursor: pointer; transition: opacity .2s, transform .2s; }
+  .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  #completion-banner { width: 100%; max-width: 720px; display: none; background: linear-gradient(135deg, rgba(62,207,142,.12), rgba(79,142,247,.08)); border: 1.5px solid rgba(62,207,142,.3); border-radius: var(--radius); padding: 24px; text-align: center; margin-top: 20px; }
+  #completion-banner h3 { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 8px; color: var(--success); }
+  #completion-banner p { font-size: 14px; color: var(--text-dim); }
+  @media (max-width: 520px) { .levels-grid { grid-template-columns: repeat(2, 1fr); } .question-card { padding: 20px 16px; } .option-btn { padding: 12px 14px; font-size: 13px; } }
+</style>
+</head>
+<body>
+
+<header class="module-header">
+  <div class="module-tag">Módulo 12 · Avaliação Psicológica</div>
+  <h1 class="module-title">Avaliação <em>Psicológica</em></h1>
+  <p class="module-subtitle">50 perguntas · 5 níveis progressivos · feedback explicativo</p>
+</header>
+
+<div id="level-select">
+  <div class="levels-grid">
+    <div class="level-card l1" id="card-1" onclick="startLevel(1)">
+      <span class="level-icon">🧭</span>
+      <div class="level-name">Nível 1</div>
+      <div class="level-desc">Fundamentos e processo</div>
+      <div class="level-status available" id="status-1">Disponível</div>
+    </div>
+    <div class="level-card l2 locked" id="card-2" onclick="startLevel(2)">
+      <span class="level-icon">📏</span>
+      <div class="level-name">Nível 2</div>
+      <div class="level-desc">Psicometria</div>
+      <div class="level-status locked-txt" id="status-2">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l3 locked" id="card-3" onclick="startLevel(3)">
+      <span class="level-icon">🧰</span>
+      <div class="level-name">Nível 3</div>
+      <div class="level-desc">Tipos de instrumentos</div>
+      <div class="level-status locked-txt" id="status-3">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l4 locked" id="card-4" onclick="startLevel(4)">
+      <span class="level-icon">📋</span>
+      <div class="level-name">Nível 4</div>
+      <div class="level-desc">SATEPSI e normativas</div>
+      <div class="level-status locked-txt" id="status-4">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l5 locked" id="card-5" onclick="startLevel(5)">
+      <span class="level-icon">⚖️</span>
+      <div class="level-name">Nível 5</div>
+      <div class="level-desc">Contextos e documentos</div>
+      <div class="level-status locked-txt" id="status-5">🔒 Bloqueado</div>
+    </div>
+  </div>
+</div>
+
+<div id="completion-banner">
+  <h3>🎓 Módulo Concluído!</h3>
+  <p>Você completou os 5 níveis de Avaliação Psicológica — dos fundamentos aos documentos e contextos.</p>
+</div>
+
+<div id="quiz-screen">
+  <div class="quiz-top">
+    <button class="back-btn" onclick="backToMenu()">← Voltar</button>
+    <span class="quiz-level-badge" id="quiz-level-label">Nível 1</span>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+  <div class="question-counter" id="question-counter">Pergunta 1 de 10</div>
+  <div class="question-card">
+    <p class="question-text" id="question-text"></p>
+  </div>
+  <div class="options-list" id="options-list"></div>
+  <div class="feedback-box" id="feedback-box">
+    <div class="feedback-label" id="feedback-label"></div>
+    <div id="feedback-text"></div>
+  </div>
+  <button class="next-btn" id="next-btn" onclick="nextQuestion()">Próxima pergunta →</button>
+</div>
+
+<div id="result-screen">
+  <div class="result-card">
+    <span class="result-emoji" id="result-emoji"></span>
+    <div class="result-title" id="result-title"></div>
+    <div class="result-score" id="result-score"></div>
+    <div class="result-score-label" id="result-score-label"></div>
+    <p class="result-message" id="result-message"></p>
+    <div class="result-actions">
+      <button class="btn-outline" onclick="retryLevel()">Tentar novamente</button>
+      <button class="btn-primary" id="next-level-btn" onclick="goNextLevel()">Próximo nível →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const LEVELS = {
+  1: {
+    label: "Nível 1 — Fundamentos e processo",
+    questions: [
+      { q: "Qual a relação entre avaliação psicológica e testagem psicológica?",
+        opts: ["São sinônimos — significam a mesma coisa","A avaliação é o processo amplo que integra várias fontes (testes, entrevistas, observação, documentos); a testagem é a aplicação de testes, uma parte desse processo","A testagem é mais ampla e contém a avaliação","A avaliação usa só testes; a testagem, só entrevistas"],
+        correct: 1,
+        feedback: "Avaliação psicológica é o processo amplo que integra informações de múltiplas fontes; a testagem (aplicação de testes) é só uma de suas etapas. Inverter qual é a mais ampla é o erro nº 1 do tema.",
+        norm: "Cartilha de Avaliação Psicológica (CFP)" },
+      { q: "O psicodiagnóstico é:",
+        opts: ["Um teste específico de inteligência","Sinônimo de testagem psicológica","Um tipo de avaliação psicológica, com finalidade clínica e diagnóstica","Uma técnica projetiva"],
+        correct: 2,
+        feedback: "O psicodiagnóstico é uma modalidade de avaliação psicológica voltada a fins clínicos — descrever, compreender ou confirmar um diagnóstico. É um tipo de avaliação, não um teste isolado.",
+        norm: "literatura de avaliação psicológica" },
+      { q: "Os testes psicológicos são de uso privativo do psicólogo?",
+        opts: ["Sim — é privativo do psicólogo com registro ativo no CRP (Lei 4.119/62); o uso por não habilitados pode configurar contravenção","É privativo dos psicólogos, mas somente daqueles com título de especialista em avaliação psicológica","Não — qualquer profissional de saúde pode aplicá-los","É de uso livre, desde que o teste seja comprado em editora autorizada"],
+        correct: 0,
+        feedback: "O uso é privativo do psicólogo com inscrição ativa no CRP (Lei 4.119/62) — e NÃO exige título de especialista: basta ser psicólogo registrado (B é a pegadinha). Não é de qualquer profissional (C) nem de uso livre (D).",
+        norm: "Lei nº 4.119/1962; normas do CFP" },
+      { q: "São fontes legítimas no processo de avaliação psicológica, EXCETO:",
+        opts: ["Entrevistas","Observação do comportamento","Testes psicológicos e análise de documentos","A boa intuição clínica do avaliador"],
+        correct: 3,
+        feedback: "A avaliação é multimétodo — entrevistas, observação, testes e documentos, que permitem triangular os dados. Mesmo a boa intuição clínica não é uma fonte técnica: ela pode orientar hipóteses, mas a avaliação se fundamenta em informações sistemáticas, não na impressão do avaliador.",
+        norm: "Cartilha de Avaliação Psicológica (CFP)" },
+      { q: "Sobre o processo de avaliação psicológica, é correto afirmar que:",
+        opts: ["Consiste em aplicar um teste e relatar o escore","Requer planejamento prévio, definido conforme a demanda e a finalidade","Independe da finalidade — os instrumentos são sempre os mesmos","Deve usar o maior número possível de testes, sempre"],
+        correct: 1,
+        feedback: "A avaliação exige planejamento prévio — os instrumentos são escolhidos conforme a demanda e o objetivo. Não é aplicar um teste e dar o escore (A) nem quanto mais testes, melhor (D).",
+        norm: "Cartilha de Avaliação Psicológica (CFP)" },
+      { q: "A ordem geral das etapas do processo de avaliação psicológica é:",
+        opts: ["Demanda/entrevista inicial → escolha dos instrumentos → aplicação → interpretação e integração → devolução/documento","Demanda/entrevista inicial → escolha dos instrumentos → aplicação → devolução → interpretação e integração","Escolha dos instrumentos → demanda → aplicação → interpretação → devolução","Aplicação dos testes → demanda → interpretação → escolha dos instrumentos → laudo"],
+        correct: 0,
+        feedback: "A única diferença entre A e B é a posição da devolução — e é decisiva: não se devolve antes de interpretar e integrar os dados. A devolução vem depois da interpretação (B inverte isso). C e D embaralham a lógica logo no início.",
+        norm: "literatura de avaliação psicológica" },
+      { q: "Um profissional aplica um único teste, calcula o escore e emite um resultado, sem entrevista, observação ou integração de outras fontes. Ele realizou:",
+        opts: ["Uma avaliação semicompleta","Uma avaliação psicológica completa","Uma testagem (aplicação de teste), que é apenas parte de uma avaliação psicológica","Um psicodiagnóstico"],
+        correct: 2,
+        feedback: "Aplicar um teste e relatar o escore é testagem — uma etapa, não a avaliação completa, que exige integrar múltiplas fontes à luz da demanda. Avaliação semicompleta (A) soa técnico, mas não existe como categoria — é distrator.",
+        norm: "Cartilha de Avaliação Psicológica (CFP)" },
+      { q: "A avaliação psicológica pode subsidiar decisões em quais contextos?",
+        opts: ["Apenas clínico, organizacional e jurídico","Clínico, organizacional, educacional, jurídico e laboratorial, entre outros","Clínico, organizacional, educacional, trânsito e \"psicossocial-pericial\", entre outros","Clínico, organizacional, educacional, jurídico, trânsito e saúde, entre outros"],
+        correct: 3,
+        feedback: "Confira item a item. A erra pelo \"apenas\" (restringe). B insere \"laboratorial\", que não é um contexto de avaliação. C inventa \"psicossocial-pericial\", termo que soa técnico mas não é uma categoria. D lista campos reais e mantém-se aberta (\"entre outros\").",
+        norm: "Cartilha de Avaliação Psicológica (CFP)" },
+      { q: "A entrevista devolutiva (devolução) no processo de avaliação psicológica:",
+        opts: ["É parte do processo: comunicar os resultados de forma compreensível ao avaliando é uma etapa e um direito dele","É uma etapa do processo, porém ocorre apenas quando o avaliando a solicita formalmente","É proibida pelo CFP","Pode ser substituída por um resumo escrito"],
+        correct: 0,
+        feedback: "A devolução integra o processo e responde ao direito da pessoa à informação sobre a própria avaliação — independe de solicitação formal (B erra ao condicionar a um pedido). A devolução é um momento de comunicação compreensível dos resultados; um resumo escrito não a substitui (D), nem ela é proibida (C).",
+        norm: "normas do CFP sobre avaliação/documentos" },
+      { q: "Uma psicóloga, para responder a uma dúvida diagnóstica, faz entrevistas, observa o comportamento, aplica dois testes e analisa relatórios escolares, integrando tudo num parecer. Ela realizou:",
+        opts: ["Uma avaliação psicométrica","Um exame psicotécnico","Uma avaliação psicológica (processo amplo, multifontes e integrado)","Apenas uma testagem"],
+        correct: 2,
+        feedback: "Integrar entrevistas, observação, testes e documentos para responder a uma demanda é avaliação psicológica. Avaliação psicométrica (A) enfatiza só a mensuração por testes; exame psicotécnico (B) é o termo restrito do contexto de trânsito — ambos soam parecidos, mas nomeiam coisa mais estreita.",
+        norm: "Cartilha de Avaliação Psicológica (CFP)" }
+    ]
+  },
+  2: {
+    label: "Nível 2 — Psicometria",
+    questions: [
+      { q: "A validade de um teste psicológico refere-se a:",
+        opts: ["O grau em que o teste mede aquilo que se propõe a medir","O grau em que o teste produz os mesmos resultados em medições repetidas","A uniformidade dos procedimentos de aplicação e correção","A existência de uma tabela normativa para interpretar o escore"],
+        correct: 0,
+        feedback: "Validade = o teste mede o que se propõe a medir. B descreve precisão, C descreve padronização e D descreve normas — todos conceitos vizinhos frequentemente trocados por validade.",
+        norm: "Pasquali; Anastasi & Urbina" },
+      { q: "A precisão (fidedignidade) de um teste refere-se a:",
+        opts: ["A capacidade do teste de medir o construto teórico pretendido","A representatividade dos itens em relação ao domínio avaliado","A consistência dos escores das mesmas pessoas em ocasiões, itens equivalentes ou condições diferentes","A adequação dos itens a um critério externo"],
+        correct: 2,
+        feedback: "Precisão (fidedignidade) é a consistência da medida — resultados estáveis em reaplicações, formas equivalentes ou condições variadas. A remete à validade de construto, B à de conteúdo e D à de critério.",
+        norm: "Anastasi & Urbina" },
+      { q: "Sobre a relação entre validade e precisão de um teste:",
+        opts: ["São sinônimos","A precisão é condição necessária, mas não suficiente, para a validade: um teste pode ser preciso sem ser válido","A validade garante automaticamente a precisão, mas não o contrário","Um teste válido pode não ser preciso, desde que tenha boas normas"],
+        correct: 1,
+        feedback: "Um teste pode medir de forma consistente (preciso) algo que não é o que pretende medir — preciso, mas não válido. Logo, precisão é necessária, porém não suficiente, para a validade. C inverte a dependência; D é falsa, pois validade exige precisão.",
+        norm: "psicometria (Pasquali; Anastasi & Urbina)" },
+      { q: "A validade de conteúdo de um teste refere-se a:",
+        opts: ["O quanto os itens constituem uma amostra representativa do domínio de comportamentos a medir","O quanto o teste prediz um desempenho futuro","O quanto o teste se correlaciona com um critério medido ao mesmo tempo","O quanto o teste representa o construto teórico subjacente"],
+        correct: 0,
+        feedback: "Validade de conteúdo = os itens cobrem, de forma representativa, o domínio que se pretende medir. B é validade preditiva, C é concorrente (ambas de critério) e D é validade de construto — reais, mas de outro tipo.",
+        norm: "Pasquali" },
+      { q: "Um teste vocacional aplicado no ensino médio que estima o desempenho do aluno num curso superior anos depois demonstra validade:",
+        opts: ["De conteúdo","De construto","De critério concorrente","De critério preditiva"],
+        correct: 3,
+        feedback: "Prever um desempenho FUTURO a partir do escore atual é validade de critério na modalidade preditiva. Se o critério fosse medido ao mesmo tempo, seria concorrente (C). Conteúdo (A) e construto (B) são outras famílias.",
+        norm: "Pasquali; Anastasi & Urbina" },
+      { q: "Pasquali considera a forma mais fundamental de validade aquela que verifica se o instrumento representa adequadamente o traço teórico que pretende medir. Trata-se da validade:",
+        opts: ["Aparente","De conteúdo","De construto","De critério concorrente"],
+        correct: 2,
+        feedback: "A validade de construto — avaliar se o teste de fato representa o construto teórico — é tida por Pasquali como a mais fundamental. A validade aparente (A) é só o que o teste parece medir, não validade técnica; B e D são outros tipos.",
+        norm: "Pasquali (2001)" },
+      { q: "O coeficiente alfa de Cronbach estima a precisão de um teste por meio de:",
+        opts: ["Reaplicação do mesmo teste em duas ocasiões diferentes","Análise da consistência interna dos itens em uma única aplicação","Comparação entre duas formas paralelas do teste","Comparação do escore com um critério externo"],
+        correct: 1,
+        feedback: "O alfa de Cronbach avalia a consistência interna — o quanto os itens se relacionam entre si — numa única aplicação. A descreve teste-reteste (estabilidade), C descreve formas paralelas e D nem é método de precisão (é validade de critério).",
+        norm: "psicometria (Pasquali)" },
+      { q: "A padronização de um teste psicológico diz respeito a:",
+        opts: ["A uniformidade dos procedimentos de aplicação, correção e interpretação, para que todos sejam avaliados nas mesmas condições","A capacidade de o teste medir o que se propõe","A consistência dos escores em reaplicações","A tabela que converte o escore bruto em escore relativo a um grupo"],
+        correct: 0,
+        feedback: "Padronização = uniformizar aplicação, correção e interpretação, garantindo condições iguais a todos. B é validade, C é precisão e D descreve as normas (normatização) — próximo, mas distinto da padronização.",
+        norm: "psicometria (Pasquali)" },
+      { q: "Um escore bruto de 28 pontos num teste, isoladamente, diz pouco sobre o desempenho de uma pessoa. Para interpretá-lo, é necessário:",
+        opts: ["Calcular o alfa de Cronbach do teste","Verificar a validade de construto do instrumento","Reaplicar o teste para confirmar a estabilidade","Compará-lo às normas (amostra normativa), que situam o escore em relação a um grupo de referência"],
+        correct: 3,
+        feedback: "O escore bruto só ganha sentido quando comparado às normas — os dados de uma amostra normativa que mostram como esse valor se posiciona no grupo de referência. As demais tratam de precisão (A, C) ou validade (B), qualidades do teste, não da interpretação do escore.",
+        norm: "psicometria (normatização)" },
+      { q: "Um teste, ao ser reaplicado às mesmas pessoas, fornece sempre escores muito próximos, mas estudos mostram que ele não prevê nem se relaciona com aquilo que diz avaliar. Esse teste é:",
+        opts: ["Válido, mas não preciso","Válido e preciso","Preciso, mas não válido","Nem preciso nem válido"],
+        correct: 2,
+        feedback: "Resultados estáveis na reaplicação indicam precisão (consistência); não medir o que se propõe indica falta de validade. Logo, preciso, porém não válido — o caso clássico de que precisão não garante validade.",
+        norm: "psicometria (Pasquali; Anastasi & Urbina)" }
+    ]
+  },
+  3: {
+    label: "Nível 3 — Tipos de instrumentos",
+    questions: [
+      { q: "A diferença fundamental entre um teste psicométrico e um teste projetivo está em que:",
+        opts: ["O psicométrico avalia personalidade e o projetivo avalia inteligência","O projetivo é padronizado e quantitativo; o psicométrico é subjetivo","O psicométrico é estruturado, baseado na teoria da medida e quantitativo; o projetivo usa estímulos ambíguos e depende mais da interpretação do aplicador","Ambos são igualmente estruturados, mudando apenas o tipo de estímulo apresentado"],
+        correct: 2,
+        feedback: "D é a pegadinha — soa razoável, mas é falsa: os projetivos não têm a mesma estruturação/padronização dos psicométricos, e a diferença não se resume ao estímulo, está no método. A troca os construtos; B inverte as definições.",
+        norm: "psicometria; literatura de avaliação" },
+      { q: "O Teste de Rorschach, que utiliza manchas de tinta como estímulo, é um exemplo de teste:",
+        opts: ["Projetivo","Projetivo e psicométrico ao mesmo tempo","De aptidão específica","Inventário de autorrelato"],
+        correct: 0,
+        feedback: "O Rorschach usa estímulos ambíguos (manchas) — é projetivo. Não é projetivo e psicométrico ao mesmo tempo (B): são categorias opostas pelo método, então o mesmo teste não é classificado como as duas. Também não é de aptidão (C) nem inventário de autorrelato (D).",
+        norm: "literatura de avaliação" },
+      { q: "Um inventário de personalidade, como o MMPI, caracteriza-se por:",
+        opts: ["Estímulos ambíguos interpretados livremente","Manchas ou desenhos analisados pelo aplicador","Itens de autorrelato, porém de interpretação livre e sem normas padronizadas","Itens objetivos de autorrelato, respondidos de forma padronizada pela própria pessoa"],
+        correct: 3,
+        feedback: "C é a armadilha — acerta o termo (autorrelato), mas erra ao dizer que a interpretação é livre e sem normas; inventários são objetivos, padronizados e normatizados. A e B descrevem técnicas projetivas/expressivas.",
+        norm: "literatura de avaliação" },
+      { q: "As escalas Wechsler (WAIS, WISC) e as Matrizes de Raven são instrumentos voltados principalmente à avaliação de:",
+        opts: ["Traços de personalidade","Inteligência / capacidade intelectual","Interesses vocacionais","Os cinco tipos de inteligência propostos por Pavlov"],
+        correct: 1,
+        feedback: "Wechsler e Raven avaliam inteligência/capacidade intelectual. D é armadilha: Pavlov é do condicionamento clássico, e não existe \"cinco tipos de inteligência de Pavlov\" — atribuição inventada para confundir pela familiaridade do nome. A e C são outras dimensões.",
+        norm: "literatura de avaliação" },
+      { q: "O Desenho da Figura Humana e o Palográfico, que analisam a produção gráfica do avaliando, são exemplos de técnicas:",
+        opts: ["Expressivas (gráficas)","Projetivas temáticas (como as que usam criação de histórias)","Inventários de autorrelato","De aptidão numérica"],
+        correct: 0,
+        feedback: "B é a quase-certa — expressivas e projetivas são famílias vizinhas, mas temáticas designa técnicas de criação de histórias (tipo TAT), não a análise do grafismo (desenho/traços), que é expressiva. C e D são outras categorias.",
+        norm: "literatura de avaliação" },
+      { q: "Um teste que mede uma habilidade específica que a pessoa traz (por exemplo, raciocínio espacial), com potencial de prever desempenho futuro, é um teste de:",
+        opts: ["Realização (desempenho do que já foi aprendido)","Personalidade","Aptidão","Interesse"],
+        correct: 2,
+        feedback: "Testes de aptidão medem habilidades específicas com potencial preditivo (ex.: raciocínio espacial). A realização (A) mede o que já foi aprendido/consolidado — é a quase-certa, pois a fronteira aptidão × realização é sutil. B e D avaliam outras dimensões.",
+        norm: "literatura de avaliação" },
+      { q: "Uma característica marcante dos testes projetivos, em comparação aos psicométricos, é que:",
+        opts: ["São sempre mais rápidos de aplicar","Possuem normas e padronização tão rígidas quanto as dos psicométricos","Por serem qualitativos, dispensam estudos de validade e precisão","A tarefa é pouco estruturada, e a interpretação depende mais do julgamento do aplicador"],
+        correct: 3,
+        feedback: "C é a armadilha — soa plausível (são qualitativos), mas projetivos também precisam de estudos de validade e precisão e de aprovação no SATEPSI. B contradiz a natureza menos estruturada deles; A não é o traço definidor.",
+        norm: "psicometria; literatura de avaliação" },
+      { q: "O TAT (Teste de Apercepção Temática), em que a pessoa cria histórias a partir de imagens, distingue-se do Rorschach por:",
+        opts: ["Ser um inventário de autorrelato, e não projetivo","Também ser projetivo, mas usar imagens que evocam a criação de histórias, enquanto o Rorschach usa manchas","Medir inteligência, e não personalidade","Ser uma técnica expressiva (narrativa), por envolver a produção do avaliando"],
+        correct: 1,
+        feedback: "D é a quase-certa — como a pessoa produz histórias, soa plausível chamar de expressiva narrativa, mas isso não é uma categoria classificatória: o TAT é projetivo temático (estímulo = imagens para narrar). Expressivas referem-se à produção gráfica (desenho/traço), não à narrativa. A nega o caráter projetivo; C troca o construto.",
+        norm: "literatura de avaliação" },
+      { q: "Tanto um inventário de personalidade quanto o Rorschach avaliam personalidade. Pode-se dizer que:",
+        opts: ["São de tipos diferentes: o inventário é de autorrelato estruturado; o Rorschach é projetivo, com estímulo ambíguo","São o mesmo tipo de teste, pois avaliam o mesmo construto","Ambos são projetivos, pois lidam com personalidade","Ambos são psicométricos objetivos"],
+        correct: 0,
+        feedback: "Avaliar o mesmo construto não os torna o mesmo tipo — o que classifica é o método. C é a quase-certa (tentador concluir que, por tratarem de personalidade, ambos seriam projetivos), mas o inventário é autorrelato estruturado. B e D também apagam a distinção metodológica.",
+        norm: "literatura de avaliação" },
+      { q: "Um psicólogo quer um instrumento estruturado, de correção objetiva e com normas, para mensurar o raciocínio lógico de candidatos. O tipo mais adequado é:",
+        opts: ["Um teste projetivo","Uma técnica expressiva (gráfica)","Um teste psicométrico (ex.: teste de inteligência/aptidão)","Uma entrevista estruturada com roteiro padronizado"],
+        correct: 2,
+        feedback: "D é a pegadinha — estruturada soa adequado, mas a entrevista, ainda que padronizada, não mensura nem normatiza raciocínio lógico como um teste psicométrico faz. Projetivos (A) e expressivos (B) exploram a subjetividade.",
+        norm: "literatura de avaliação" }
+    ]
+  },
+  4: {
+    label: "Nível 4 — SATEPSI e normativas do CFP",
+    questions: [
+      { q: "O SATEPSI (Sistema de Avaliação de Testes Psicológicos), do CFP, tem como função:",
+        opts: ["Aplicar os testes psicológicos diretamente nos pacientes","Avaliar a qualidade técnico-científica dos instrumentos e definir os requisitos mínimos para um instrumento ser reconhecido como teste psicológico","Comercializar os testes psicológicos aprovados","Formar e certificar psicólogos para o uso de testes"],
+        correct: 1,
+        feedback: "O SATEPSI avalia a qualidade técnico-científica dos instrumentos e estabelece os requisitos mínimos para algo ser reconhecido como teste psicológico, além de divulgar as listas. Não aplica testes (A), não os comercializa (C) nem certifica profissionais (D).",
+        norm: "Resolução CFP nº 31/2022" },
+      { q: "Atualmente, o SATEPSI é regulamentado por qual resolução do CFP?",
+        opts: ["Resolução CFP nº 002/2003","Resolução CFP nº 13/2022","Resolução CFP nº 31/2022, que revogou a 09/2018","Resolução CFP nº 09/2018, ainda em vigor"],
+        correct: 2,
+        feedback: "A norma vigente é a Resolução CFP nº 31/2022, que revogou a 09/2018. D é a armadilha — a 09/2018 já foi a regra (por isso parece certa), mas está revogada. B (13/2022) trata de psicoterapia, não de SATEPSI.",
+        norm: "Resolução CFP nº 31/2022" },
+      { q: "Para um teste psicológico receber parecer favorável no SATEPSI, ele precisa apresentar:",
+        opts: ["Apenas estudos de validade","Apenas a aprovação da editora que o publica","Estudos de validade e precisão, sem a necessidade de apresentar normas","Estudos de validade, precisão e normas, documentados em manual técnico"],
+        correct: 3,
+        feedback: "Precisa de validade, precisão E normas, em manual técnico. C é a parecida-com-a-certa — lista quase os mesmos itens, mas suprime as normas, que são exigidas. A isola um único requisito; B confunde aprovação técnica do CFP com publicação por editora.",
+        norm: "Resolução CFP nº 31/2022" },
+      { q: "No exercício profissional, o psicólogo pode utilizar:",
+        opts: ["Apenas testes com parecer favorável no SATEPSI","Qualquer teste publicado por editora reconhecida","Testes com parecer favorável ou desfavorável, a seu critério clínico","Apenas testes com parecer favorável no CFP e nas Comissões de Psicodiagnóstico"],
+        correct: 0,
+        feedback: "Só podem ser usados os de parecer favorável no SATEPSI. D é a armadilha — soa oficial, mas Comissões de Psicodiagnóstico não existem como instância de aprovação; quem avalia é o SATEPSI/CFP (via CCAP). C sugere que o critério clínico autorizaria um desfavorável (não autoriza); B confunde publicação com aprovação.",
+        norm: "Resolução CFP nº 31/2022" },
+      { q: "Utilizar, na prática profissional, um teste com parecer desfavorável ou não avaliado pelo SATEPSI:",
+        opts: ["É considerado \"semiválido\", cabendo ao aplicador especificar o objetivo e justificar o uso","É permitido em qualquer contexto","É considerado falta ética, ressalvados os usos em pesquisa e em ensino com objetivo formativo","É permitido apenas no contexto organizacional"],
+        correct: 2,
+        feedback: "É falta ética (art. 12), com ressalva para pesquisa e ensino formativo. A é a armadilha — semiválido não existe como categoria, e justificar o uso não converte falta ética em conduta válida. B e D inventam permissões que não existem.",
+        norm: "Resolução CFP nº 31/2022, art. 12" },
+      { q: "Quanto à atualização dos parâmetros psicométricos de um teste, a Resolução 31/2022 estabelece que:",
+        opts: ["Uma vez aprovado, o teste tem validade vitalícia","Os estudos de validade, precisão e normas devem ser revistos periodicamente, em intervalo que não ultrapasse 15 anos","A revisão é facultativa, a critério da editora","Os estudos devem ser refeitos a cada 10 anos"],
+        correct: 1,
+        feedback: "Os estudos devem ser revistos periodicamente, sem ultrapassar 15 anos (art. 22). D é a armadilha — 10 anos soa plausível, mas o limite normativo é 15. A (vitalícia) e C (facultativa) também erram.",
+        norm: "Resolução CFP nº 31/2022, art. 22" },
+      { q: "A CCAP (Comissão Consultiva em Avaliação Psicológica), no âmbito do SATEPSI:",
+        opts: ["Analisa os instrumentos e os classifica, entre outros, como teste psicológico (privativo) ou instrumento não privativo","Aplica os testes nos processos seletivos das editoras","Define os honorários cobrados pelos testes","Julga a acurácia e a validade dos testes e é responsável por traduzi-los para o português brasileiro"],
+        correct: 0,
+        feedback: "A CCAP analisa e classifica os instrumentos (privativo × não privativo), subsidiando os pareceres. D é a quase-certa — ela de fato avalia qualidades técnicas, mas NÃO traduz nem adapta os testes; isso é responsabilidade do responsável técnico/editora. B e C não são funções dela.",
+        norm: "Resolução CFP nº 31/2022" },
+      { q: "Sobre a aplicação, correção e interpretação de um teste psicológico aprovado:",
+        opts: ["Devem seguir as orientações da editora e a normatização das resoluções do SATEPSI","Pode-se usar normas de outro teste semelhante, se forem mais recentes","A correção pode ser estimada quando o manual não estiver disponível","Devem seguir rigorosamente as orientações, a padronização e a normatização do manual técnico aprovado"],
+        correct: 3,
+        feedback: "O que rege aplicação, correção e interpretação é o manual técnico aprovado de cada teste. A é a armadilha — soa oficial (editora, resoluções do SATEPSI), mas a referência correta é o manual técnico aprovado, não orientações genéricas da editora. B e C violam a padronização que dá validade ao resultado.",
+        norm: "Resolução CFP nº 31/2022" },
+      { q: "No SATEPSI, a distinção entre teste psicológico e instrumento não privativo significa que:",
+        opts: ["Ambos só podem ser usados por psicólogos","Nenhum dos dois exige aprovação técnica","O teste psicológico é de uso privativo do psicólogo; o instrumento não privativo pode ser utilizado também por outros profissionais","O instrumento não privativo tem a mesma acurácia que o teste psicológico, mas não possui a mesma validade"],
+        correct: 2,
+        feedback: "O teste psicológico é privativo do psicólogo; o não privativo pode ser usado por outras profissões. D é a quase-certa — cria uma distinção técnica (mesma acurácia, menos validade) que não procede: a diferença é de exclusividade de uso, não de qualidade psicométrica. A apaga a distinção; B é falsa.",
+        norm: "Resolução CFP nº 31/2022; SATEPSI" },
+      { q: "Antes de incluir um teste numa avaliação, o psicólogo quer ter certeza de que pode usá-lo. A conduta correta é:",
+        opts: ["Consultar a lista do SATEPSI e verificar se o teste está com parecer favorável","Verificar se o teste é vendido por uma editora vinculada ao SATEPSI","Verificar se outros colegas já o utilizaram com bons resultados na mesma demanda","Usá-lo se ele já tiver sido aprovado no processo de fiscalização do CRP"],
+        correct: 0,
+        feedback: "Consultar o SATEPSI e checar o parecer favorável é a conduta correta. B inventa editora vinculada ao SATEPSI (o sistema avalia testes, não credencia editoras); C é dúbia — uso por colegas não substitui o parecer oficial; D confunde papéis: o CRP fiscaliza a conduta profissional, não aprova testes (isso é do SATEPSI/CFP).",
+        norm: "Resolução CFP nº 31/2022; SATEPSI" }
+    ]
+  },
+  5: {
+    label: "Nível 5 — Contextos de aplicação e documentos",
+    questions: [
+      { q: "A elaboração de documentos psicológicos escritos é regida atualmente por qual resolução do CFP?",
+        opts: ["Resolução CFP nº 07/2003","Resolução CFP nº 06/2019, que revogou a 07/2003 e a 15/1996","Resolução CFP nº 31/2022","Resolução CFP nº 10/2005"],
+        correct: 1,
+        feedback: "A norma vigente é a 06/2019, que revogou a 07/2003 e a 15/1996. A é a armadilha — a 07/2003 foi a regra anterior (parece certa), mas está revogada. C (31/2022) trata do SATEPSI; D (10/2005) é o Código de Ética.",
+        norm: "Resolução CFP nº 06/2019" },
+      { q: "Segundo a Resolução 06/2019, são modalidades de documentos psicológicos:",
+        opts: ["Apenas laudo e parecer","Declaração, atestado, prontuário e receituário","Declaração, atestado psicológico, relatório (psicológico e multiprofissional), laudo psicológico e parecer psicológico","Anamnese, laudo, prontuário e atestado"],
+        correct: 2,
+        feedback: "As modalidades são declaração, atestado, relatório (psicológico e multiprofissional), laudo e parecer. B e D são armadilhas — incluem prontuário, receituário e anamnese, que são registros/etapas, não modalidades de documento da 06/2019. A é incompleta.",
+        norm: "Resolução CFP nº 06/2019, art. 8º" },
+      { q: "Sobre a declaração psicológica, é correto afirmar que:",
+        opts: ["Registra, de forma objetiva, dados como comparecimento e acompanhamento, sendo vedado o registro de sintomas ou estados psicológicos","Deve conter o diagnóstico psicológico resumido da pessoa atendida","É o documento que apresenta o resultado completo de uma avaliação","Substitui o laudo em processos judiciais"],
+        correct: 0,
+        feedback: "A declaração registra comparecimento/acompanhamento (tempo, dias, horários) e NÃO pode registrar sintomas ou estados psicológicos. B é a quase-certa — soa razoável resumir o diagnóstico, mas isso é justamente vedado na declaração (e próprio do atestado). C descreve o laudo; D é falsa.",
+        norm: "Resolução CFP nº 06/2019, art. 9º" },
+      { q: "O atestado psicológico distingue-se da declaração porque:",
+        opts: ["É mais curto e nunca menciona condição psicológica","Não pode justificar faltas ou afastamentos","Registra apenas dias e horários de atendimento","Certifica, com fundamento em diagnóstico psicológico, uma situação ou condição (por exemplo, para justificar afastamento ou afirmar aptidão)"],
+        correct: 3,
+        feedback: "O atestado certifica uma condição com base em diagnóstico psicológico (justificar afastamento, afirmar aptidão etc.) — diferente da declaração, que não registra estados psicológicos. A e C descrevem a declaração; B inverte a finalidade do atestado.",
+        norm: "Resolução CFP nº 06/2019, art. 10" },
+      { q: "O laudo psicológico caracteriza-se por:",
+        opts: ["Registrar apenas comparecimento, sem análise","Ser o resultado de um processo de avaliação psicológica, com narrativa detalhada e fundamentada, para subsidiar decisões no contexto da demanda","Responder a uma questão-problema formulada por terceiros","Ser um documento de uso exclusivamente interno, sem valor técnico"],
+        correct: 1,
+        feedback: "O laudo é o resultado de uma avaliação psicológica — peça técnico-científica, detalhada e fundamentada, que subsidia decisões. A é a declaração; C descreve o parecer; D nega o valor técnico-científico que o laudo tem.",
+        norm: "Resolução CFP nº 06/2019, art. 13" },
+      { q: "O parecer psicológico tem como finalidade:",
+        opts: ["Registrar comparecimento e acompanhamento","Certificar uma condição para justificar afastamento","Apresentar uma análise técnica que responde a uma questão-problema do campo psicológico ou a documentos psicológicos questionados","Ser o relato detalhado de todo o processo de avaliação"],
+        correct: 2,
+        feedback: "O parecer é um pronunciamento técnico que responde a uma questão-problema (ou analisa documentos questionados) — comum quando um juiz ou instituição faz uma consulta específica. A é a declaração, B é o atestado e D descreve o laudo/relatório.",
+        norm: "Resolução CFP nº 06/2019, art. 14" },
+      { q: "Na elaboração de um laudo psicológico, em relação às fontes utilizadas:",
+        opts: ["É obrigatório informar as fontes científicas ou referências bibliográficas que fundamentam o documento","As referências são opcionais, a critério do psicólogo","É proibido citar referências, para manter o sigilo","Basta citar o nome do teste, sem qualquer outra fundamentação"],
+        correct: 0,
+        feedback: "O laudo deve obrigatoriamente informar as fontes científicas/referências que o fundamentam. B e D minimizam essa exigência (parecem aceitáveis, mas a norma é expressa); C inverte — citar referências não fere o sigilo.",
+        norm: "Resolução CFP nº 06/2019, art. 13, §7º" },
+      { q: "A avaliação psicológica é aplicada em diversos contextos. No contexto de trânsito, por exemplo, ela subsidia:",
+        opts: ["A elaboração de receitas medicamentosas","O diagnóstico de transtornos neurológicos","A definição de tratamento psiquiátrico","A avaliação da aptidão do candidato à habilitação (exame psicológico no trânsito)"],
+        correct: 3,
+        feedback: "Na psicologia do trânsito, a avaliação subsidia o exame de aptidão para a habilitação. A (receita) é ato médico; B e C confundem com avaliação neurológica/conduta psiquiátrica. Cada contexto (clínico, organizacional, jurídico, trânsito, escolar) tem sua finalidade própria.",
+        norm: "literatura de avaliação; psicologia do trânsito" },
+      { q: "Quanto à entrega dos resultados e ao sigilo na avaliação psicológica:",
+        opts: ["Os resultados podem ser divulgados a quem o psicólogo julgar conveniente","A devolução é dispensável, bastando arquivar o documento","Os documentos têm caráter sigiloso, e a devolução (comunicação compreensível dos resultados ao avaliando) integra o processo","O laudo deve ser entregue diretamente a terceiros interessados, sem passar pelo avaliando"],
+        correct: 2,
+        feedback: "Os documentos são sigilosos, e a devolução — comunicar os resultados de forma compreensível ao avaliando — faz parte do processo. A viola o sigilo; B suprime a devolução; D ignora o direito do avaliando à informação sobre a própria avaliação.",
+        norm: "Resolução CFP nº 06/2019; Código de Ética" },
+      { q: "Um juiz solicita a um psicólogo uma análise técnica que responda a uma questão específica e que avalie um documento psicológico apresentado no processo. O documento adequado a ser produzido é:",
+        opts: ["Um parecer psicológico","Uma declaração","Um atestado psicológico","Uma anamnese"],
+        correct: 0,
+        feedback: "Responder a uma questão-problema e analisar um documento psicológico questionado é função do parecer. A declaração (B) só registra comparecimento; o atestado (C) certifica condição com base em diagnóstico; a anamnese (D) é etapa de coleta, não um documento-resposta a uma consulta.",
+        norm: "Resolução CFP nº 06/2019, art. 14" }
+    ]
+  }
+};
+
+const TOTAL_LEVELS = 5;
+let state = {
+  currentLevel: null, currentQ: 0, score: 0, answered: false,
+  completed: {1:false,2:false,3:false,4:false,5:false}
+};
+
+function startLevel(lvl) {
+  const card = document.getElementById(`card-${lvl}`);
+  if (card.classList.contains('locked')) return;
+  state.currentLevel = lvl; state.currentQ = 0; state.score = 0; state.answered = false;
+  document.getElementById('level-select').style.display = 'none';
+  document.getElementById('completion-banner').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('quiz-screen').style.display = 'block';
+  document.getElementById('quiz-level-label').textContent = `Nível ${lvl}`;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const level = LEVELS[state.currentLevel];
+  const q = level.questions[state.currentQ];
+  const total = level.questions.length;
+  state.answered = false;
+  document.getElementById('feedback-box').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('question-counter').textContent = `Pergunta ${state.currentQ + 1} de ${total}`;
+  document.getElementById('progress-fill').style.width = `${(state.currentQ / total) * 100}%`;
+  document.getElementById('question-text').textContent = q.q;
+  const list = document.getElementById('options-list');
+  list.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-letter">${letters[i]}</span><span>${opt}</span>`;
+    btn.onclick = () => selectOption(i, btn);
+    list.appendChild(btn);
+  });
+}
+
+function selectOption(idx, btn) {
+  if (state.answered) return;
+  state.answered = true;
+  const q = LEVELS[state.currentLevel].questions[state.currentQ];
+  const allBtns = document.querySelectorAll('.option-btn');
+  allBtns.forEach(b => b.disabled = true);
+  const feedbackBox = document.getElementById('feedback-box');
+  if (idx === q.correct) {
+    state.score++;
+    btn.classList.add('correct');
+    feedbackBox.className = 'feedback-box correct';
+    document.getElementById('feedback-label').textContent = '✓ Correto';
+  } else {
+    btn.classList.add('wrong');
+    allBtns[q.correct].classList.add('reveal-correct');
+    feedbackBox.className = 'feedback-box wrong';
+    document.getElementById('feedback-label').textContent = '✗ Incorreto';
+  }
+  const normHtml = q.norm ? `<span class="feedback-norm">📌 Base: ${q.norm}</span>` : '';
+  document.getElementById('feedback-text').innerHTML = q.feedback + normHtml;
+  feedbackBox.style.display = 'block';
+  const nextBtn = document.getElementById('next-btn');
+  const isLast = state.currentQ === LEVELS[state.currentLevel].questions.length - 1;
+  nextBtn.textContent = isLast ? 'Ver resultado →' : 'Próxima pergunta →';
+  nextBtn.style.display = 'block';
+}
+
+function nextQuestion() {
+  state.currentQ++;
+  if (state.currentQ >= LEVELS[state.currentLevel].questions.length) showResult();
+  else renderQuestion();
+}
+
+function showResult() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'block';
+  const total = LEVELS[state.currentLevel].questions.length;
+  const pct = Math.round((state.score / total) * 100);
+  const passed = pct >= 80;
+  if (passed) state.completed[state.currentLevel] = true;
+  document.getElementById('result-score').textContent = `${state.score}/${total}`;
+  document.getElementById('result-score-label').textContent = `${pct}% de acerto`;
+  let emoji, title, msg;
+  if (pct === 100) { emoji='🏆'; title='Perfeito!'; msg='100% de acerto. Você domina esse nível completamente.'; }
+  else if (pct >= 80) { emoji='🎯'; title='Aprovado!'; msg='Sólido. Revise os itens errados e avance com confiança.'; }
+  else { emoji='📖'; title='Revisar antes de continuar'; msg='Abaixo de 80%. Revise o conteúdo desse nível e tente novamente.'; }
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-message').textContent = msg;
+  const nextBtn = document.getElementById('next-level-btn');
+  const nextLvl = state.currentLevel + 1;
+  if (nextLvl > TOTAL_LEVELS) { nextBtn.textContent = 'Módulo concluído ✓'; nextBtn.disabled = !passed; }
+  else { nextBtn.textContent = `Ir para Nível ${nextLvl} →`; nextBtn.disabled = !passed; }
+  updateLevelCards();
+}
+
+function retryLevel() { startLevel(state.currentLevel); }
+
+function goNextLevel() {
+  const nextLvl = state.currentLevel + 1;
+  backToMenu();
+  if (nextLvl <= TOTAL_LEVELS) setTimeout(() => startLevel(nextLvl), 50);
+}
+
+function backToMenu() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('level-select').style.display = 'block';
+  updateLevelCards(); checkAllComplete();
+}
+
+function updateLevelCards() {
+  for (let i = 1; i <= TOTAL_LEVELS; i++) {
+    const card = document.getElementById(`card-${i}`);
+    const status = document.getElementById(`status-${i}`);
+    if (state.completed[i]) {
+      card.classList.remove('locked'); status.className='level-status done'; status.textContent='✓ Concluído';
+    } else if (i === 1 || state.completed[i-1]) {
+      card.classList.remove('locked'); status.className='level-status available'; status.textContent='Disponível';
+    } else {
+      card.classList.add('locked'); status.className='level-status locked-txt'; status.textContent='🔒 Bloqueado';
+    }
+  }
+}
+
+function checkAllComplete() {
+  let all = true;
+  for (let i=1;i<=TOTAL_LEVELS;i++) if (!state.completed[i]) { all=false; break; }
+  if (all) document.getElementById('completion-banner').style.display = 'block';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz TCC — Terapia Cognitivo-Comportamental</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117; --surface: #181c27; --surface2: #1f2535; --border: #2a3045;
+    --accent: #4f8ef7; --accent2: #7c5cbf; --success: #3ecf8e; --error: #f75f5f;
+    --warning: #f7b955; --text: #e8eaf0; --text-dim: #8892a4; --text-dimmer: #4a5568;
+    --radius: 14px; --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-weight: 400; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px 60px; }
+  .module-header { width: 100%; max-width: 720px; margin-bottom: 32px; text-align: center; }
+  .module-tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); background: rgba(79,142,247,.12); border: 1px solid rgba(79,142,247,.25); border-radius: 20px; padding: 4px 14px; margin-bottom: 14px; }
+  .module-title { font-family: 'DM Serif Display', serif; font-size: clamp(28px, 6vw, 42px); line-height: 1.15; color: var(--text); margin-bottom: 8px; }
+  .module-title em { font-style: italic; color: var(--accent); }
+  .module-subtitle { font-size: 15px; color: var(--text-dim); font-weight: 300; }
+  #level-select { width: 100%; max-width: 720px; }
+  .levels-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
+  .level-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 18px 14px; cursor: pointer; transition: all .2s ease; text-align: center; position: relative; overflow: hidden; }
+  .level-card::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity .2s; }
+  .level-card.l1::before { background: linear-gradient(135deg, rgba(79,142,247,.08), transparent); }
+  .level-card.l2::before { background: linear-gradient(135deg, rgba(124,92,191,.08), transparent); }
+  .level-card.l3::before { background: linear-gradient(135deg, rgba(79,142,247,.08), transparent); }
+  .level-card.l4::before { background: linear-gradient(135deg, rgba(247,185,85,.08), transparent); }
+  .level-card.l5::before { background: linear-gradient(135deg, rgba(124,92,191,.08), transparent); }
+  .level-card.l6::before { background: linear-gradient(135deg, rgba(62,207,142,.08), transparent); }
+  .level-card:hover:not(.locked)::before { opacity: 1; }
+  .level-card:hover:not(.locked) { border-color: rgba(79,142,247,.4); transform: translateY(-2px); }
+  .level-card.locked { opacity: .4; cursor: not-allowed; }
+  .level-card.completed { border-color: var(--success); }
+  .level-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+  .level-name { font-family: 'DM Serif Display', serif; font-size: 15px; margin-bottom: 3px; }
+  .level-desc { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+  .level-status { margin-top: 8px; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  .level-status.done { color: var(--success); }
+  .level-status.locked-txt { color: var(--text-dimmer); }
+  .level-status.available { color: var(--accent); }
+  #quiz-screen { width: 100%; max-width: 720px; display: none; }
+  .quiz-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .back-btn { background: none; border: 1px solid var(--border); color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 6px 14px; border-radius: 20px; cursor: pointer; transition: all .2s; }
+  .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .quiz-level-badge { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim); }
+  .progress-bar-wrap { background: var(--surface2); border-radius: 99px; height: 6px; width: 100%; margin-bottom: 28px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .4s ease; }
+  .question-counter { font-size: 12px; color: var(--text-dimmer); margin-bottom: 10px; text-align: right; }
+  .question-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 28px 24px; margin-bottom: 16px; }
+  .question-text { font-family: 'DM Serif Display', serif; font-size: clamp(16px, 3.5vw, 21px); line-height: 1.4; color: var(--text); }
+  .options-list { display: flex; flex-direction: column; gap: 10px; }
+  .option-btn { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px 18px; text-align: left; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; cursor: pointer; transition: all .18s ease; display: flex; align-items: flex-start; gap: 12px; line-height: 1.45; }
+  .option-letter { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; min-width: 24px; border-radius: 6px; background: var(--surface2); font-size: 12px; font-weight: 600; color: var(--text-dim); transition: all .18s; }
+  .option-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(79,142,247,.06); }
+  .option-btn:hover:not(:disabled) .option-letter { background: var(--accent); color: #fff; }
+  .option-btn.correct { border-color: var(--success); background: rgba(62,207,142,.08); }
+  .option-btn.correct .option-letter { background: var(--success); color: #fff; }
+  .option-btn.wrong { border-color: var(--error); background: rgba(247,95,95,.08); }
+  .option-btn.wrong .option-letter { background: var(--error); color: #fff; }
+  .option-btn.reveal-correct { border-color: var(--success); background: rgba(62,207,142,.05); opacity: .7; }
+  .option-btn:disabled { cursor: default; }
+  .feedback-box { border-radius: var(--radius-sm); padding: 16px 18px; margin-bottom: 16px; font-size: 14px; line-height: 1.6; display: none; animation: slideUp .25s ease; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .feedback-box.correct { background: rgba(62,207,142,.1); border: 1px solid rgba(62,207,142,.3); color: #a8f0cf; }
+  .feedback-box.wrong { background: rgba(247,95,95,.1); border: 1px solid rgba(247,95,95,.3); color: #ffa8a8; }
+  .feedback-label { font-weight: 600; font-size: 13px; letter-spacing: .04em; margin-bottom: 5px; text-transform: uppercase; }
+  .feedback-norm { display: block; margin-top: 8px; font-size: 12px; color: var(--text-dim); font-style: italic; }
+  .next-btn { width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; border-radius: var(--radius-sm); color: #fff; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; padding: 15px; cursor: pointer; transition: opacity .2s, transform .2s; display: none; }
+  .next-btn:hover { opacity: .9; transform: translateY(-1px); }
+  #result-screen { width: 100%; max-width: 720px; display: none; text-align: center; }
+  .result-card { background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 40px 28px; }
+  .result-emoji { font-size: 52px; margin-bottom: 16px; display: block; }
+  .result-title { font-family: 'DM Serif Display', serif; font-size: 28px; margin-bottom: 8px; }
+  .result-score { font-size: 48px; font-weight: 600; color: var(--accent); margin: 16px 0 4px; }
+  .result-score-label { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; }
+  .result-message { font-size: 15px; color: var(--text-dim); line-height: 1.6; margin-bottom: 28px; max-width: 460px; margin-left: auto; margin-right: auto; }
+  .result-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn-outline { background: none; border: 1.5px solid var(--border); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; padding: 12px 22px; border-radius: var(--radius-sm); cursor: pointer; transition: all .2s; }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; padding: 12px 22px; border-radius: var(--radius-sm); cursor: pointer; }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+  #completion-banner { width: 100%; max-width: 720px; display: none; background: linear-gradient(135deg, rgba(62,207,142,.12), rgba(79,142,247,.08)); border: 1.5px solid rgba(62,207,142,.3); border-radius: var(--radius); padding: 24px; text-align: center; margin-top: 20px; }
+  #completion-banner h3 { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 8px; color: var(--success); }
+  #completion-banner p { font-size: 14px; color: var(--text-dim); }
+  @media (max-width: 520px) { .levels-grid { grid-template-columns: repeat(2, 1fr); } .question-card { padding: 20px 16px; } .option-btn { padding: 12px 14px; font-size: 13px; } }
+</style>
+</head>
+<body>
+
+<header class="module-header">
+  <div class="module-tag">Módulo 07 · Abordagens</div>
+  <h1 class="module-title">Terapia <em>Cognitivo-</em>Comportamental</h1>
+  <p class="module-subtitle">60 perguntas · 6 níveis progressivos · feedback explicativo</p>
+</header>
+
+<div id="level-select">
+  <div class="levels-grid">
+    <div class="level-card l1" id="card-1" onclick="startLevel(1)">
+      <span class="level-icon">🧱</span>
+      <div class="level-name">Nível 1</div>
+      <div class="level-desc">Conceitos fundamentais</div>
+      <div class="level-status available" id="status-1">Disponível</div>
+    </div>
+    <div class="level-card l2 locked" id="card-2">
+      <span class="level-icon">👤</span>
+      <div class="level-name">Nível 2</div>
+      <div class="level-desc">Modelos e autores</div>
+      <div class="level-status locked-txt" id="status-2">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l3 locked" id="card-3">
+      <span class="level-icon">🛠️</span>
+      <div class="level-name">Nível 3</div>
+      <div class="level-desc">Técnicas específicas</div>
+      <div class="level-status locked-txt" id="status-3">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l4 locked" id="card-4">
+      <span class="level-icon">🔀</span>
+      <div class="level-name">Nível 4</div>
+      <div class="level-desc">Distinções entre abordagens</div>
+      <div class="level-status locked-txt" id="status-4">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l5 locked" id="card-5">
+      <span class="level-icon">🏥</span>
+      <div class="level-name">Nível 5</div>
+      <div class="level-desc">Aplicação clínica</div>
+      <div class="level-status locked-txt" id="status-5">🔒 Bloqueado</div>
+    </div>
+    <div class="level-card l6 locked" id="card-6">
+      <span class="level-icon">🧩</span>
+      <div class="level-name">Nível 6</div>
+      <div class="level-desc">Casos complexos e integração</div>
+      <div class="level-status locked-txt" id="status-6">🔒 Bloqueado</div>
+    </div>
+  </div>
+
+  <div id="completion-banner">
+    <h3>🎓 Módulo Concluído!</h3>
+    <p>Você percorreu os 6 níveis da TCC — do modelo cognitivo de Beck às técnicas, às distinções entre abordagens e aos casos complexos.</p>
+  </div>
+</div>
+
+<div id="quiz-screen">
+  <div class="quiz-top">
+    <button class="back-btn" onclick="backToMenu()">← Voltar</button>
+    <span class="quiz-level-badge" id="quiz-level-label">Nível 1</span>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+  <div class="question-counter" id="question-counter">Pergunta 1 de 10</div>
+  <div class="question-card">
+    <p class="question-text" id="question-text"></p>
+  </div>
+  <div class="options-list" id="options-list"></div>
+  <div class="feedback-box" id="feedback-box">
+    <div class="feedback-label" id="feedback-label"></div>
+    <div id="feedback-text"></div>
+  </div>
+  <button class="next-btn" id="next-btn" onclick="nextQuestion()">Próxima pergunta →</button>
+</div>
+
+<div id="result-screen">
+  <div class="result-card">
+    <span class="result-emoji" id="result-emoji"></span>
+    <div class="result-title" id="result-title"></div>
+    <div class="result-score" id="result-score"></div>
+    <div class="result-score-label" id="result-score-label"></div>
+    <p class="result-message" id="result-message"></p>
+    <div class="result-actions">
+      <button class="btn-outline" onclick="retryLevel()">Tentar novamente</button>
+      <button class="btn-primary" id="next-level-btn" onclick="goNextLevel()">Próximo nível →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PASS = 80;
+const LEVELS = {"1":{"label":"Nível 1 — Conceitos fundamentais","questions":[{"q":"Qual é a premissa central da TCC?","correct":0,"norm":"modelo cognitivo de Beck","opts":["É a interpretação dos eventos, mais que os eventos em si, que gera as respostas emocionais","As emoções surgem diretamente dos eventos, sem depender de como são interpretados","Os pensamentos são consequência das emoções, e raramente as antecedem","Pensamento, emoção e comportamento operam de forma independente entre si"],"feedback":"Para a TCC, não é o evento em si que produz a emoção, mas a interpretação que a pessoa faz dele. Por isso o mesmo acontecimento pode gerar reações diferentes em pessoas diferentes — e por isso trabalhar a forma de interpretar muda o modo de sentir e agir. É o princípio do modelo cognitivo de Beck."},{"q":"O \"pensamento automático\" é:","correct":1,"norm":"modelo cognitivo de Beck","opts":["Convicção profunda e absoluta sobre si mesmo, formada na infância","Cognição rápida e involuntária que surge diante de situações específicas","Regra ou suposição condicional que orienta a conduta cotidiana","Estratégia deliberada de enfrentamento usada para regular as emoções"],"feedback":"Pensamentos automáticos são cognições breves, rápidas e involuntárias que surgem diante de situações específicas. Não nascem de reflexão deliberada e costumam ser aceitos como verdade, mesmo quando distorcem a realidade — são a camada mais superficial e acessível do modelo cognitivo."},{"q":"Crenças nucleares são:","correct":2,"norm":"modelo cognitivo de Beck","opts":["Interpretações situacionais que se formam apenas na vida adulta","Pensamentos passageiros que surgem em momentos de estresse agudo","Convicções absolutas e profundas sobre si, o mundo e os outros","Regras e suposições condicionais derivadas de esquemas mais profundos"],"feedback":"Crenças nucleares são convicções absolutas e profundas sobre si mesmo, o mundo e os outros, em geral formadas na infância. Funcionam como lentes que filtram toda a experiência (ex.: \"sou incapaz\", \"o mundo é perigoso\") e sustentam as camadas mais superficiais da cognição."},{"q":"Do nível mais profundo ao mais superficial, a ordem é:","correct":3,"norm":"modelo cognitivo de Beck","opts":["Pensamentos automáticos → crenças intermediárias → crenças nucleares","Crenças intermediárias → crenças nucleares → pensamentos automáticos","Pensamentos automáticos → crenças nucleares → crenças intermediárias","Crenças nucleares → crenças intermediárias → pensamentos automáticos"],"feedback":"A hierarquia vai do mais profundo ao mais superficial: crenças nucleares → crenças intermediárias → pensamentos automáticos. As nucleares geram regras e suposições (intermediárias), que por sua vez disparam os pensamentos automáticos situacionais. Entender essa ordem orienta até onde a intervenção precisa ir."},{"q":"A tríade cognitiva de Beck (na depressão) é a visão negativa de:","correct":0,"norm":"tríade cognitiva de Beck","opts":["Si mesmo, do mundo e do futuro","Si mesmo, do passado e do futuro","Do mundo, dos outros e do terapeuta","Do corpo, da mente e das relações"],"feedback":"Na depressão, Beck descreveu uma visão negativa de três alvos que se reforçam: de si mesmo (\"sou um fracasso\"), do mundo (\"tudo é difícil\") e do futuro (\"nada vai melhorar\"). Essa tríade mantém o humor deprimido num ciclo que se retroalimenta."},{"q":"Crenças intermediárias são:","correct":2,"norm":"modelo cognitivo de Beck","opts":["Convicções absolutas e profundas sobre si mesmo e o mundo","Cognições rápidas e situacionais, aceitas como verdade pelo paciente","Regras e suposições que derivam das crenças nucleares","Esquemas idênticos aos nucleares, porém de intensidade menor"],"feedback":"Crenças intermediárias são as regras, atitudes e suposições que derivam das nucleares e guiam a conduta do dia a dia (ex.: \"se eu errar, serei rejeitado\"). Ficam entre as crenças nucleares e os pensamentos automáticos, traduzindo as primeiras em estratégias de vida."},{"q":"No modelo ABC de Ellis, o que difere do ABC behaviorista?","correct":1,"norm":"TRE de Ellis","opts":["São idênticos: ABC é sempre antecedente, comportamento e consequência","Em Ellis, B são as crenças que medeiam o evento (A) e as consequências (C)","Em Ellis, B representa o comportamento observável diante do antecedente","Em Ellis, o ABC se aplica só à ansiedade; no behaviorismo, a tudo"],"feedback":"No modelo de Ellis, A é o evento ativador, B são as crenças (Beliefs) e C as consequências emocionais e comportamentais. O ponto central é que não é A que causa C, e sim B: a crença ativada entre o evento e a reação. O mesmo evento gera respostas diferentes conforme a crença."},{"q":"O objetivo do questionamento socrático é:","correct":3,"norm":"técnica socrática na TCC","opts":["Confrontar diretamente o paciente com as contradições do seu raciocínio","Ensinar o paciente a memorizar respostas adaptativas já formuladas","Sugerir ao paciente a interpretação correta para acelerar a mudança","Levar o paciente a examinar evidências e chegar a conclusões mais equilibradas"],"feedback":"O questionamento socrático é um diálogo colaborativo em que o terapeuta faz perguntas que levam o paciente a examinar as evidências dos próprios pensamentos e a chegar, por si mesmo, a conclusões mais equilibradas. O terapeuta guia o raciocínio, sem impor a resposta."},{"q":"O registro de pensamentos disfuncionais serve para:","correct":2,"norm":"reestruturação cognitiva na TCC","opts":["Substituir automaticamente os pensamentos negativos por positivos","Registrar sonhos e devaneios para análise na sessão seguinte","Examinar e reestruturar pensamentos automáticos entre as sessões","Medir a frequência dos comportamentos-problema ao longo da semana"],"feedback":"O registro de pensamentos disfuncionais é a tarefa de casa clássica da TCC: o paciente anota a situação, a emoção e o pensamento automático, examina as evidências a favor e contra e formula uma alternativa mais equilibrada. É a reestruturação cognitiva aplicada fora do consultório."},{"q":"A TCC caracteriza-se por ser:","correct":0,"norm":"características da TCC","opts":["Colaborativa, estruturada, focada no presente e orientada a metas","Não diretiva e exploratória, sem agenda ou estrutura de sessão definida","De longa duração, voltada à reconstrução da personalidade","Baseada só em técnicas comportamentais, sem componente verbal"],"feedback":"A TCC é colaborativa (terapeuta e paciente trabalham juntos), estruturada (com agenda de sessão), focada no presente e orientada a objetivos concretos. Esse conjunto de traços é o que a distingue de abordagens mais exploratórias e abertas."}]},"2":{"label":"Nível 2 — Modelos e autores","questions":[{"q":"Beck desenvolveu a TCC originalmente para tratar:","correct":1,"norm":"história da TCC — Beck","opts":["Fobias específicas, tratadas por exposição gradual e dessensibilização","Depressão, ao perceber padrões cognitivos negativos recorrentes","Borderline com risco suicida/autolesivo crônico","Estresse pós-traumático em veteranos de guerra"],"feedback":"Beck era psicanalista e, ao pesquisar a depressão nos anos 1960, notou padrões cognitivos negativos recorrentes que não cabiam na teoria psicanalítica. Foi essa observação que o levou a desenvolver o modelo cognitivo e, depois, a TCC."},{"q":"O conceito que distingue Ellis (Terapia Racional Emotiva) de Beck é:","correct":3,"norm":"TRE de Ellis","opts":["Esquemas desadaptativos precoces formados na infância","Reestruturação dos pensamentos automáticos ligados à situação","Catastrofização de sensações corporais","Crenças irracionais absolutistas ('devo', 'tenho que')"],"feedback":"Para Ellis, o sofrimento deriva de crenças irracionais de caráter absolutista — os \"devo\", \"tenho que\", \"preciso obrigatoriamente\". A Terapia Racional Emotiva foca em identificar e flexibilizar essas exigências rígidas, o que a diferencia da ênfase de Beck nos esquemas e pensamentos de cada paciente."},{"q":"A Terapia Comportamental Dialética, de Linehan, foi formulada para:","correct":0,"norm":"DBT — Linehan","opts":["Borderline com risco suicida/autolesivo crônico","Transtorno obsessivo-compulsivo grave e refratário a outras abordagens","Transtorno do pânico com agorafobia","Depressão recorrente, para prevenir recaídas"],"feedback":"Linehan criou a Terapia Comportamental Dialética nos anos 1980 ao perceber que a TCC padrão não bastava para pacientes borderline com risco suicida e autolesivo crônico. A abordagem combina estratégias de mudança com estratégias de aceitação."},{"q":"A \"Inoculação de Estresse\" é a contribuição de:","correct":2,"norm":"Inoculação de Estresse — Meichenbaum","opts":["Young — Terapia do Esquema, sobre os esquemas precoces da infância","Jacobson — Ativação Comportamental, sobre engajar-se em atividades","Meichenbaum — treino para antecipar e enfrentar estressores","Gilbert — Terapia Focada na Compaixão, sobre o autocriticismo"],"feedback":"A Inoculação de Estresse, de Meichenbaum, prepara a pessoa para lidar com situações estressantes em fases — conceituação, aquisição de habilidades e aplicação prática —, como uma \"vacina\" psicológica. É muito usada com profissionais expostos a estresse intenso."},{"q":"O foco central da Terapia do Esquema (Young) é:","correct":1,"norm":"Terapia do Esquema — Young","opts":["Catastrofização de sensações corporais, como no transtorno de pânico","Esquemas desadaptativos precoces, formados na infância","Crenças irracionais absolutistas, do tipo 'tenho que'","Aceitação de eventos privados e ação por valores"],"feedback":"Young desenvolveu a Terapia do Esquema para casos crônicos e de personalidade, em que a TCC padrão tinha limites. O foco são os esquemas desadaptativos precoces — padrões emocionais e cognitivos formados na infância —, trabalhados com técnicas cognitivas, comportamentais e experienciais."},{"q":"A Terapia Cognitiva Baseada em Mindfulness foi desenvolvida principalmente para:","correct":0,"norm":"Terapia Cognitiva Baseada em Mindfulness — Segal, Williams & Teasdale","opts":["Prevenir recaídas na depressão recorrente","Tratar o episódio depressivo agudo e grave pela primeira vez","Substituir a medicação em quadros psicóticos","Reduzir compulsões no transtorno obsessivo-compulsivo"],"feedback":"A Terapia Cognitiva Baseada em Mindfulness, de Segal, Williams e Teasdale, combina TCC e mindfulness com um objetivo específico: prevenir recaídas em quem já teve episódios depressivos recorrentes. Não é voltada ao episódio agudo."},{"q":"A \"segunda geração\" da terapia comportamental é marcada por Beck e Ellis porque:","correct":3,"norm":"ondas da TCC","opts":["Incorporou relaxamento e biofeedback ao tratamento","Substituiu a exposição por técnicas de reestruturação narrativa","Focou exclusivamente em transtornos de personalidade","Pôs a cognição como mediadora entre situação e resposta"],"feedback":"A primeira onda comportamental focava no comportamento observável; Beck e Ellis inauguraram a segunda onda ao introduzir a cognição como variável que medeia entre a situação e a resposta emocional. Foi a entrada do pensamento como alvo terapêutico."},{"q":"A contribuição mais distintiva da Terapia Focada na Compaixão (Gilbert) é:","correct":2,"norm":"CFT — Gilbert","opts":["A exposição gradual ao temido como mecanismo central de mudança","As técnicas de desfusão diante dos pensamentos","Os sistemas de regulação emocional (ameaça, busca, segurança)","A ativação comportamental como tratamento da depressão"],"feedback":"Gilbert desenvolveu a Terapia Focada na Compaixão a partir da neurociência das emoções, identificando três sistemas de regulação: ameaça, busca/realização e segurança/contentamento. Em quem tem muita autocrítica, o sistema de ameaça fica hiperativo, e o trabalho de compaixão ativa o de segurança."},{"q":"No modelo de Clark, o transtorno de pânico resulta de:","correct":0,"norm":"modelo de pânico — Clark","opts":["Interpretação catastrófica de sensações corporais normais","Condicionamento clássico a estímulos externos bem específicos","Crenças nucleares de abandono ativadas no estresse","Déficit de habilidades de regulação em situações sociais"],"feedback":"No modelo de Clark, o pânico nasce de um ciclo: uma sensação corporal normal (ex.: taquicardia) é interpretada de forma catastrófica (\"estou tendo um infarto\"), o que aumenta a ansiedade, gera mais sensações e realimenta a catástrofe. A intervenção quebra esse ciclo."},{"q":"A lógica da Ativação Comportamental (Jacobson) é:","correct":2,"norm":"Ativação Comportamental — Jacobson","opts":["Esperar o humor melhorar para só então retomar as atividades","Reestruturar crenças de inutilidade antes de agir","Buscar reforços positivos antes de o humor melhorar","Usar relaxamento para baixar a ativação fisiológica"],"feedback":"Jacobson testou os componentes da TCC para depressão e viu que a Ativação Comportamental sozinha tinha eficácia equivalente ao pacote completo. A lógica inverte o ciclo depressivo: em vez de esperar o humor melhorar para agir, age-se primeiro para gerar experiências que melhoram o humor."}]},"3":{"label":"Nível 3 — Técnicas específicas","questions":[{"q":"A reestruturação cognitiva, bem conduzida, consiste em:","correct":2,"norm":"reestruturação cognitiva","opts":["Substituir os pensamentos negativos por afirmações mais positivas","Reprimir o pensamento disfuncional com técnicas de distração","Examinar as evidências e formular uma leitura mais realista","Confrontar o paciente com a irracionalidade do que pensa"],"feedback":"Reestruturar não é \"pensar positivo\" — é pensar com mais precisão. O paciente identifica o pensamento automático, examina as evidências a favor e contra, considera alternativas e formula uma leitura mais realista. O objetivo é acurácia, não otimismo forçado."},{"q":"Paciente com transtorno obsessivo-compulsivo de contaminação lava as mãos compulsivamente. A técnica de escolha é:","correct":0,"norm":"Exposição com Prevenção de Resposta no TOC","opts":["Exposição com Prevenção de Resposta: tocar o gatilho e não lavar","Dessensibilização sistemática, com relaxamento e hierarquia imaginada","Reestruturação das crenças sobre contaminação, antes de tudo","Treino de relaxamento muscular antes de cada exposição"],"feedback":"Na Exposição com Prevenção de Resposta, o paciente se expõe ao gatilho (tocar algo \"contaminado\") e impede a compulsão (não lavar). Isso quebra o ciclo obsessão-compulsão e permite que a ansiedade caia por conta própria. É o tratamento de primeira linha para o transtorno obsessivo-compulsivo."},{"q":"O experimento comportamental serve para:","correct":3,"norm":"experimento comportamental","opts":["Treinar habilidades sociais antes das situações reais","Observar o comportamento do paciente em contexto, sem intervir","Registrar os comportamentos-problema para análise posterior","Testar na prática a previsão de uma crença, por ação planejada"],"feedback":"O experimento comportamental é uma ação planejada para testar, na vida real, uma previsão do paciente. Ex.: ele acredita que \"se eu errar, todos vão me desprezar\" — então cria-se uma situação para checar o que de fato acontece. Trabalha a crença com evidência direta, não só argumento."},{"q":"A dessensibilização sistemática (Wolpe) baseia-se em:","correct":1,"norm":"dessensibilização sistemática — Wolpe","opts":["Exposição máxima ao estímulo até a ansiedade ceder (flooding)","Inibição recíproca: relaxamento incompatível com ansiedade","Reestruturação da crença catastrófica ligada ao estímulo","Reforço positivo das aproximações ao objeto temido"],"feedback":"Wolpe partiu da inibição recíproca: relaxamento e ansiedade intensa não coexistem. A dessensibilização sistemática combina relaxamento com exposição gradual ao estímulo temido, subindo aos poucos numa hierarquia, do item menos ao mais ansiogênico."},{"q":"O treino de habilidades sociais é indicado quando:","correct":2,"norm":"déficit × inibição","opts":["A ansiedade bloqueia habilidades que o paciente já possui","O paciente evita por crenças disfuncionais, com repertório intacto","Há déficit real de repertório: o paciente não sabe como agir","Sempre, junto da exposição, qualquer que seja a causa"],"feedback":"É essencial distinguir não saber fazer (déficit real de repertório) de saber, mas travar por ansiedade (inibição). O treino de habilidades sociais é indicado quando há déficit; quando o repertório está preservado e o que bloqueia é a ansiedade, a via é a exposição."},{"q":"A sequência correta da técnica de solução de problemas é:","correct":0,"norm":"solução de problemas","opts":["Definir o problema → gerar alternativas → avaliar → implementar e revisar","Gerar alternativas → definir o problema → implementar → avaliar resultados","Implementar a solução → avaliar → definir o problema → gerar alternativas","Avaliar alternativas → gerar alternativas → definir o problema → implementar"],"feedback":"A técnica segue uma sequência: definir o problema de forma concreta, gerar alternativas sem julgar, avaliar prós e contras, implementar a escolhida e revisar o resultado. Pular etapas — sobretudo a definição precisa do problema — é a causa mais comum de fracasso."},{"q":"O relaxamento muscular progressivo (Jacobson):","correct":1,"norm":"relaxamento progressivo — Jacobson","opts":["Usa imaginação guiada para relaxar, sem contração muscular prévia","Alterna tensão e relaxamento dos grupos musculares","Trabalha só a respiração diafragmática como via de relaxamento","Depende de equipamento de biofeedback para registrar a tensão"],"feedback":"O relaxamento de Jacobson usa o princípio de tensionar para depois relaxar: a tensão prévia aprofunda a percepção do relaxamento. O protocolo percorre os grupos musculares do corpo e serve para ansiedade, insônia, dor crônica e preparação para a exposição."},{"q":"O agendamento de atividades, na depressão, serve para:","correct":3,"norm":"agendamento de atividades","opts":["Preencher o tempo livre para evitar pensamentos ruminativos","Treinar a autodisciplina e o senso de responsabilidade do paciente","Monitorar os sintomas depressivos ao longo da semana","Programar atividades de prazer e domínio, quebrando a inatividade"],"feedback":"Não é \"ocupar o tempo\": é programar de propósito atividades com potencial de prazer e de domínio (senso de realização). A depressão cria um ciclo de inatividade que mantém o humor baixo; o agendamento quebra esse ciclo gerando experiências que contradizem as crenças de inutilidade."},{"q":"A técnica da seta descendente serve para:","correct":2,"norm":"seta descendente","opts":["Construir a hierarquia de exposição para uma fobia","Avaliar a gravidade dos sintomas ao longo do tratamento","Chegar à crença nuclear a partir de um pensamento automático","Mapear a relação entre eventos de vida e início dos sintomas"],"feedback":"A seta descendente parte de um pensamento automático e pergunta repetidamente \"se isso fosse verdade, o que significaria?\", descendo até a crença nuclear que o sustenta. É a técnica para acessar as camadas mais profundas a partir do que aparece na superfície."},{"q":"O roleplay (jogo de papéis), na TCC, é mais indicado para:","correct":0,"norm":"roleplay na TCC","opts":["Ensaiar respostas e testar previsões em cena simulada","Aplicar a exposição ao vivo nas situações sociais temidas","Registrar os pensamentos automáticos durante a interação","Avaliar o repertório de habilidades por observação direta"],"feedback":"O jogo de papéis tem dois usos na TCC: treinar habilidades que o paciente ainda não domina (ex.: assertividade) e testar crenças numa cena simulada antes da vida real. É especialmente útil como ensaio antes de um experimento comportamental em situação real."}]},"4":{"label":"Nível 4 — Distinções entre abordagens","questions":[{"q":"Dois terapeutas tratam o mesmo pensamento \"sou um fracasso\". Um examina evidências e busca uma leitura mais realista; o outro ajuda o paciente a observá-lo como um evento mental, sem disputá-lo. Eles são, respectivamente:","correct":1,"norm":"reestruturação × defusão","opts":["ACT (defusão) e TCC (reestruturação)","TCC (reestruturação) e ACT (defusão)","TCC (reestruturação) e Terapia do Esquema (modos)","Terapia do Esquema (imagery) e ACT (defusão)"],"feedback":"São dois caminhos diante do mesmo pensamento. A reestruturação (TCC) examina e modifica o conteúdo — o quanto ele é acurado. A defusão (ACT) muda a relação com ele: observá-lo como evento mental, sem precisar disputá-lo nem acreditar. Mudam coisas diferentes, por mecanismos diferentes."},{"q":"A Ativação Comportamental e o agendamento de atividades da TCC de Beck se relacionam assim:","correct":2,"norm":"Ativação Comportamental × agendamento de atividades","opts":["São a mesma técnica, com nomes diferentes conforme o autor","A Ativação Comportamental é um componente da TCC; o agendamento de atividades é independente dela","O agendamento é uma técnica dentro da TCC; a Ativação Comportamental se mostrou eficaz como tratamento autônomo","Ambas exigem reestruturação cognitiva prévia para funcionar"],"feedback":"O agendamento de atividades é uma técnica dentro da TCC; a Ativação Comportamental, a partir de Jacobson, foi além e se firmou como tratamento autônomo para depressão, com eficácia equivalente ao pacote completo da TCC. São aparentadas, mas não a mesma coisa."},{"q":"Tanto a Terapia Comportamental Dialética quanto a ACT incorporam \"aceitação\". A diferença é:","correct":0,"norm":"aceitação na ACT × na DBT","opts":["Na ACT a aceitação serve à ação por valores; na DBT, equilibra-se com mudança via habilidades","Na DBT a aceitação serve à ação por valores; na ACT, equilibra-se com habilidades","Só a ACT usa aceitação; na DBT não há esse componente","Nas duas, aceitação significa resignar-se ao sofrimento que não muda"],"feedback":"As duas usam aceitação, com funções distintas. Na ACT, aceitar abre espaço para agir em direção aos valores. Na DBT, a aceitação entra na dialética com a mudança — validar a pessoa e, ao mesmo tempo, trabalhar habilidades para que ela mude."},{"q":"A crítica central que a ACT faz à TCC tradicional é que:","correct":3,"norm":"crítica da ACT à TCC","opts":["A TCC seria longa e cara demais para a maioria das pessoas que precisam dela","A TCC não teria evidência empírica suficiente para sustentar seus resultados","A TCC ignoraria por completo o componente comportamental do tratamento","Reestruturar pode reforçar a fusão; a ACT muda a relação com o pensamento"],"feedback":"A crítica da ACT é fina: tentar refutar ou controlar um pensamento pode sinalizar que ele é importante o bastante para merecer a luta — o que mantém a pessoa presa a ele. A ACT propõe mudar a relação com o pensamento, não o seu conteúdo."},{"q":"A Terapia do Esquema (Young) difere da TCC de Beck por:","correct":2,"norm":"Terapia do Esquema × TCC de Beck","opts":["Não usar nenhuma técnica cognitiva — trabalhar apenas com o experiencial","Ser indicada só para transtornos de ansiedade","Focar esquemas precoces e modos, com forte ênfase experiencial","Rejeitar o conceito de crenças intermediárias"],"feedback":"A TCC de Beck é mais focada no presente e em problemas específicos. A Terapia do Esquema, de Young, vai mais fundo: trabalha esquemas e modos formados na infância, com forte ênfase em técnicas experienciais e na relação terapêutica. É mais indicada para quadros crônicos e de personalidade."},{"q":"A Terapia Comportamental Dialética se diferencia da TCC padrão sobretudo pela:","correct":0,"norm":"DBT × TCC padrão","opts":["Dialética aceitação × mudança: validar e, ainda assim, pedir mudança","Ênfase exclusiva na reestruturação cognitiva, sem nada comportamental","Ausência de treino de habilidades no protocolo","Duração mais curta, focada só em crises agudas"],"feedback":"A dialética central da DBT é \"você está fazendo o melhor que pode E precisa fazer melhor\". Esse equilíbrio entre aceitação radical e mudança é o coração do modelo, e a distingue da TCC padrão, mais voltada à mudança — reduzindo a ruptura com pacientes que se sentem incompreendidos."},{"q":"Comparando TCC e EMDR no transtorno de estresse pós-traumático, a afirmação correta é:","correct":3,"norm":"TCC × EMDR no TEPT","opts":["São abordagens idênticas, apenas com nomes diferentes","O EMDR careceria de evidência científica, ao contrário da TCC, já validada","A TCC serve só ao trauma simples; o EMDR, só ao complexo","Ambas têm evidência; o EMDR usa estimulação bilateral, de mecanismo discutido"],"feedback":"A TCC focada no trauma e o EMDR têm ambos evidência robusta para o transtorno de estresse pós-traumático. A diferença técnica do EMDR é a estimulação bilateral (movimentos oculares, tapping) durante a evocação da memória — e seu mecanismo exato ainda é debatido."},{"q":"A Terapia Focada na Compaixão (Gilbert) é especialmente indicada para pacientes com:","correct":1,"norm":"indicação da CFT","opts":["Fobias específicas simples","Autocriticismo e vergonha intensos, com reestruturação de pouco efeito","Borderline com automutilação e ideação suicida crônica e recorrente","Necessidade de protocolo breve para depressão leve"],"feedback":"Pacientes com muita autocrítica em geral sabem que seus pensamentos são irracionais — mas se criticam por tê-los, num ciclo que a reestruturação sozinha não quebra. A Terapia Focada na Compaixão trabalha justamente desenvolver uma postura de cuidado consigo, ativando o sistema de segurança."},{"q":"A distinção entre reestruturação (TCC) e defusão (ACT) é:","correct":0,"norm":"reestruturação × defusão","opts":["A reestruturação muda o conteúdo; a defusão muda a relação com ele","São tecnicamente idênticas, só muda o nome","A defusão muda o conteúdo do pensamento; a reestruturação, apenas a relação","A defusão é apenas uma técnica de relaxamento"],"feedback":"Na reestruturação, a mensagem é \"esse pensamento não condiz com as evidências\". Na defusão, é \"posso notar esse pensamento sem precisar lutar contra ele nem acreditar nele\". Uma altera o conteúdo; a outra, o peso que o pensamento tem sobre o comportamento."},{"q":"A Terapia Cognitiva Baseada em Mindfulness se diferencia da TCC padrão porque:","correct":2,"norm":"Terapia Cognitiva Baseada em Mindfulness × TCC padrão","opts":["Não usa nenhum elemento cognitivo — é puramente mindfulness","Serve a todos os transtornos, enquanto a TCC tem indicações específicas","Usa mindfulness para observar os pensamentos, em vez de mudá-los","Rejeita a ideia de que pensamentos influenciam emoções"],"feedback":"A Terapia Cognitiva Baseada em Mindfulness integra TCC e mindfulness: em vez de refutar pensamentos negativos, ensina a reconhecer os padrões depressivos cedo e a observá-los sem julgamento. O mecanismo não é mudar o pensamento, mas mudar a relação com ele."}]},"5":{"label":"Nível 5 — Aplicação clínica","questions":[{"q":"\"Só vou conseguir viver quando essa ansiedade passar\", diz o paciente. A leitura mais alinhada à TCC é:","correct":2,"norm":"evitação e ação na ansiedade","opts":["Ele precisa primeiro reduzir a ansiedade; só então retomar a vida","Reestruturar a crença catastrófica deve preceder qualquer ação","É a armadilha de condicionar a vida ao fim do sintoma; agir apesar dele","Falta tolerância ao mal-estar; treinar isso antes de qualquer exposição"],"feedback":"\"Preciso parar de me sentir ansioso para viver\" é a própria armadilha da evitação: a vida fica refém do sintoma. A conduta inverte isso — o paciente aprende a se mover em direção ao que importa agora, com a ansiedade presente, sem esperar que ela desapareça primeiro."},{"q":"Paciente com fobia social evita reuniões e festas. A conduta de maior peso é:","correct":0,"norm":"exposição na fobia social","opts":["Exposição gradual e hierarquizada às situações sociais","Reestruturação cognitiva isolada, sem expor ao temido","Treino de habilidades sociais antes de qualquer exposição","Supressão dos pensamentos ansiosos antes de cada situação"],"feedback":"A exposição é o componente de maior peso nos transtornos de ansiedade. Na fobia social, monta-se uma hierarquia e o paciente se expõe aos poucos, aprendendo que as consequências catastrofizadas não ocorrem e que a ansiedade diminui sozinha. A reestruturação prepara, mas não substitui a exposição."},{"q":"Em depressão com humor muito rebaixado, o início mais recomendado é:","correct":3,"norm":"sequência na depressão","opts":["Reestruturar as crenças nucleares logo, para efeito duradouro","Questionamento socrático extenso antes de qualquer mudança de rotina","Focar só nos pensamentos automáticos, sem mexer no comportamento","Ativação comportamental primeiro, quebrando o ciclo de inatividade"],"feedback":"Com o humor muito rebaixado, falta energia cognitiva para reestruturar. Começar pela ativação comportamental quebra o ciclo de inatividade e gera experiências positivas que elevam minimamente o humor; só então a reestruturação rende. É uma questão de sequência, não de qual técnica é \"melhor\"."},{"q":"Criança de 9 anos, TDAH e baixa tolerância à frustração. Adaptar a TCC pede:","correct":1,"norm":"TCC com crianças","opts":["Mesmo formato adulto, só simplificando o vocabulário","Elementos lúdicos, metáforas concretas, sessões curtas e pais como co-terapeutas","Apenas relaxamento muscular, deixando o cognitivo de fora","Substituir a TCC por intervenção exclusivamente comportamental até os 12 anos de idade"],"feedback":"Com crianças, sobretudo com TDAH, a TCC pede adaptações: sessões mais curtas, jogos e histórias para ilustrar os conceitos, tarefas concretas e visuais e envolvimento dos pais como co-terapeutas. O desenvolvimento cognitivo da criança limita o trabalho puramente verbal e abstrato."},{"q":"Paciente com transtorno obsessivo-compulsivo verifica as janelas várias vezes antes de sair. A Exposição com Prevenção de Resposta correta é:","correct":2,"norm":"Exposição com Prevenção de Resposta no TOC","opts":["Reduzir uma verificação por dia até chegar a zero","Reestruturar a crença de que algo ruim acontecerá, antes de expor","Sair sem verificar e impedir o ritual, tolerando a ansiedade até ceder","Relaxar antes de sair, para baixar a ansiedade que dispara o ritual"],"feedback":"O paciente se expõe ao gatilho (sair sem verificar) e impede a resposta compulsiva (a verificação). A ansiedade sobe, mas cai naturalmente por habituação. Reduzir aos poucos o número de verificações é hierarquia de exposição — útil, mas funciona de modo diferente da prevenção de resposta pura."},{"q":"A paciente concorda com tudo na sessão, até com hipóteses lançadas como teste. Em TCC, isso provavelmente é:","correct":1,"norm":"relação terapêutica como dado clínico","opts":["Boa aliança e abertura genuína à mudança","Crença de necessidade de aprovação replicando-se no setting","Estilo de deferência do paciente, em geral tido como sinal de bom prognóstico","Defusão bem aplicada pela paciente"],"feedback":"Concordar com tudo pode ser material clínico: a paciente pode ter a crença de que \"preciso agradar para ser aceita\", fazendo a relação terapêutica repetir os padrões que ela traz para fora. Na TCC, isso é objeto de formulação e trabalho explícito, não sinal de progresso."},{"q":"No transtorno de estresse pós-traumático tratado por TCC focada no trauma, um componente central é:","correct":0,"norm":"TCC focada no trauma","opts":["Processar a memória traumática e reestruturar as cognições ligadas a ele","Evitar sistematicamente falar do trauma, para não correr o risco de retraumatizar","Hipnose para acessar memórias dissociadas","Só relaxamento nas primeiras 20 sessões"],"feedback":"A TCC focada no trauma processa a memória traumática (narrativa do trauma) e reestrutura as cognições ligadas a ele — culpa do sobrevivente, crença de mundo perigoso. A evitação mantém o quadro; o processamento da memória, com estrutura e suporte, é o que permite a recuperação."},{"q":"Adolescente deprimido e isolado socialmente. A sequência mais alinhada à TCC é:","correct":2,"norm":"sequência no adolescente","opts":["Resolver primeiro as crenças de rejeição, antes de propor qualquer contato social","Treino de habilidades sociais extenso antes de tocar no cognitivo","Ativação com metas graduais de contato, depois reestruturar as cognições sociais","Focar só na relação com os pais como variável principal"],"feedback":"Com adolescente deprimido e isolado, a ativação com metas graduais de contato gera experiências reais que contradizem as crenças de rejeição. Essas experiências são mais potentes do que reestruturar a crença \"no vácuo\", antes de qualquer contato. A ordem importa."},{"q":"A TCC do transtorno de ansiedade generalizada difere da de fobias específicas porque:","correct":3,"norm":"TCC no transtorno de ansiedade generalizada","opts":["No transtorno de ansiedade generalizada não se usa exposição, só reestruturação","O quadro é tratado só com relaxamento e mindfulness","As técnicas são idênticas; muda só a duração","Inclui intolerância à incerteza e preocupação difusa, além de exposição e reestruturação"],"feedback":"O núcleo do transtorno de ansiedade generalizada é a intolerância à incerteza — a necessidade de ter certeza do futuro para se sentir seguro. Além de exposição e reestruturação, o tratamento inclui trabalhar as crenças sobre a preocupação e tolerar a incerteza. É mais complexo que tratar uma fobia específica."},{"q":"Paciente evita pedir aumento ao chefe por ansiedade intensa. A formulação cognitiva mais provável encadeia:","correct":0,"norm":"formulação cognitiva","opts":["Crença de inadequação → suposição de rejeição → pensamento de humilhação → evitação","Déficit isolado de assertividade, sem componente cognitivo","Desregulação emocional sem relação com crenças específicas","Condicionamento clássico por punição experimentado no atual ambiente de trabalho"],"feedback":"A formulação conecta os níveis: crença nuclear de inadequação → suposição de rejeição → pensamento automático de humilhação → ansiedade antecipatória → evitação → reforço negativo. Essa cadeia é o mapa que orienta onde e como intervir."}]},"6":{"label":"Nível 6 — Casos complexos e integração","questions":[{"q":"Paciente com transtorno de personalidade evitativa passa 20 sessões concordando com tudo, faz as tarefas, relata \"melhora\" — mas sem mudança funcional. A leitura mais provável:","correct":0,"norm":"relação terapêutica em caso complexo","opts":["A esquiva entrou na terapia: ele agrada o terapeuta para ser aceito, repetindo o padrão evitativo","Houve melhora real; a percepção subjetiva do paciente deve bastar como critério","É falha técnica: o terapeuta não usou as ferramentas certas da TCC","Pacientes com transtorno de personalidade evitativa não respondem à TCC e devem ser encaminhados"],"feedback":"Aqui o paciente usa a própria terapia como mais uma forma de esquiva: faz tudo \"certo\" para agradar e ser aceito, sem se expor ao risco relacional real. A relação terapêutica vira o principal instrumento — o terapeuta nomeia o padrão e cria experiências corretivas dentro da sessão."},{"q":"Depressão crônica com histórico de abandonos na infância, respondendo mal à TCC padrão. A extensão mais indicada:","correct":2,"norm":"Terapia do Esquema em depressão crônica","opts":["Aumentar a frequência das sessões de TCC padrão para acelerar","Terapia Comportamental Dialética, voltada à regulação emocional aguda e ao risco","Terapia do Esquema, que trabalha esquemas precoces e necessidades da infância","Terapia Cognitiva Baseada em Mindfulness, indicada pela cronicidade"],"feedback":"Depressão crônica ligada a esquemas de abandono formados na infância costuma não responder à TCC padrão, porque os esquemas são profundos demais para a reestruturação direta. A Terapia do Esquema foi desenhada para isso: reparentalização limitada, imagery e trabalho com os modos."},{"q":"Comorbidade de transtorno obsessivo-compulsivo e depressão. A sequência mais apoiada pela literatura:","correct":1,"norm":"comorbidade — sequência de tratamento","opts":["Tratar primeiro a depressão com ativação comportamental e, só então, introduzir a Exposição com Prevenção de Resposta","Tratar o transtorno obsessivo-compulsivo com Exposição com Prevenção de Resposta; o humor tende a melhorar junto","Tratar as duas condições ao mesmo tempo desde a primeira sessão","A ordem é indiferente; o que importa é a aliança terapêutica"],"feedback":"Na comorbidade entre transtorno obsessivo-compulsivo e depressão, tratar o transtorno obsessivo-compulsivo com Exposição com Prevenção de Resposta costuma melhorar o humor de forma secundária — boa parte do humor deprimido vem da incapacitação causada pelo transtorno obsessivo-compulsivo. Quando a exposição é viável, costuma ser o ponto de entrada mais eficiente."},{"q":"Adolescente de 15 anos com autismo nível 1 e ansiedade social responde literalmente e tem dificuldade com o questionamento socrático. Adaptar a TCC pede:","correct":3,"norm":"TCC adaptada ao autismo","opts":["Encaminhar para uma abordagem exclusivamente comportamental, sem qualquer componente cognitivo","Aplicar a TCC padrão: no autismo nível 1 a capacidade cognitiva já basta","Focar apenas em habilidades sociais, sem tocar nas cognições","Análise funcional explícita, roteiros sociais e metáforas concretas, com mais estrutura"],"feedback":"No autismo, o pensamento concreto e literal pede adaptações: análise funcional explícita no lugar do questionamento socrático abstrato, roteiros sociais escritos, metáforas visuais e mais estrutura nas sessões. O componente cognitivo continua válido — só precisa de outra forma."},{"q":"Paciente diz: \"Racionalmente eu sei que não sou um fracasso, até listo as evidências — mas continuo sentindo que sou.\" Em TCC, isso indica:","correct":0,"norm":"mudança cognitiva intelectual × emocional","opts":["A crença mudou no nível racional, mas não no emocional — pede trabalho vivencial (imagery, dramatização)","A reestruturação foi concluída: reconhecer as evidências racionais já é o alvo final do método","É defusão bem-sucedida, típica da terceira onda — ele observa o pensamento sem se fundir","Falta tolerância ao mal-estar, que deveria ser treinada antes de prosseguir"],"feedback":"É a distinção entre a crença \"fria\" e a \"quente\": o paciente mudou no nível racional (reconhece as evidências), mas a crença continua ativa no nível emocional. Isso pede trabalho vivencial — imagery, dramatização —, que alcança a emoção que a discussão lógica sozinha não atinge."},{"q":"Paciente borderline em Terapia Comportamental Dialética, com ideação suicida crônica e automutilação para regular emoções. A resposta mais adequada:","correct":2,"norm":"manejo da autolesão na DBT","opts":["Internar a cada episódio de autolesão relatado","Confrontar com as consequências da autolesão para gerar motivação","Análise em cadeia do ato, validação do sofrimento e treino de habilidades alternativas","Encaminhar imediatamente à psiquiatria e suspender a psicoterapia até a estabilização"],"feedback":"Na DBT, a autolesão é tratada como comportamento com função — em geral, regular emoções intensas. A resposta clínica é a análise em cadeia (o que levou ao ato), a validação do sofrimento e a construção de habilidades alternativas. Reações punitivas ou de confronto aumentam o risco de abandono."},{"q":"Sobre integrar TCC e farmacoterapia na depressão moderada a grave, a evidência aponta que:","correct":1,"norm":"TCC + farmacoterapia","opts":["A TCC é contraindicada para quem usa antidepressivo","A combinação de TCC e medicação supera cada tratamento isolado nesses casos","A medicação deve ser retirada antes de iniciar a TCC","A TCC serve apenas à depressão leve; os casos moderados a graves pedem medicação isolada"],"feedback":"Para depressão moderada a grave, a evidência é consistente: a combinação de TCC e antidepressivo supera cada tratamento isolado. E a TCC ainda reduz o risco de recaída após a retirada da medicação — algo que a farmacoterapia sozinha não faz."},{"q":"Um terapeuta percebe que sente raiva quando certo paciente \"resiste\" e cancela sessões. O manejo dentro da abordagem é:","correct":3,"norm":"contratransferência na TCC contemporânea","opts":["Ignorar as próprias reações emocionais, já que o terapeuta deve permanecer neutro e técnico","Comunicar a raiva diretamente ao paciente na sessão seguinte","Encaminhar o paciente a outro terapeuta de imediato","Reconhecer a contratransferência, levá-la à supervisão e ver que esquemas próprios se ativaram"],"feedback":"A prática contemporânea da TCC reconhece a relevância das reações do terapeuta, sobretudo em casos complexos. Reações emocionais intensas costumam sinalizar que o padrão do paciente ativou esquemas do próprio terapeuta — daí a importância da supervisão e da autorreflexão."},{"q":"A TCC para depressão costuma sustentar os ganhos melhor que a medicação isolada após a alta. O fator que melhor explica isso é:","correct":2,"norm":"durabilidade do efeito da TCC — mecanismo","opts":["O efeito residual do antidepressivo usado durante o tratamento","A remissão espontânea, própria do curso natural da depressão","A internalização de habilidades que o paciente segue usando após a alta","A manutenção informal do vínculo com o terapeuta depois da alta"],"feedback":"Um dos achados mais robustos da literatura: a TCC tem efeito mais duradouro que a medicação após o fim do tratamento. A hipótese é que ela ensina habilidades que o paciente internaliza e segue usando — enquanto a medicação trata o sintoma só enquanto está ativa."},{"q":"Caso com depressão, histórico de trauma, traços evitativos e uso problemático de álcool. A prioridade do terapeuta é:","correct":0,"norm":"formulação de caso complexo","opts":["Formulação integrativa que hierarquiza por segurança e impacto funcional, definindo a sequência de alvos","Tratar todos os problemas ao mesmo tempo desde a primeira sessão","Focar só na queixa principal trazida, ignorando as comorbidades","Encaminhar o caso a outro profissional, dada a complexidade, antes de iniciar qualquer intervenção própria"],"feedback":"Casos complexos exigem formulação antes da intervenção. A hierarquização considera primeiro a segurança (risco de vida), depois a estabilidade (o uso de álcool pode precisar de atenção antes do trauma) e os demais alvos por impacto funcional. Tratar tudo ao mesmo tempo dilui o foco."}]}};
+const LEVEL_DESC = {"1":"Conceitos fundamentais","2":"Modelos e autores","3":"Técnicas específicas","4":"Distinções entre abordagens","5":"Aplicação clínica","6":"Casos complexos e integração"};
+const MAX_LEVEL = 6;
+let unlocked = {"1":true,"2":false,"3":false,"4":false,"5":false,"6":false};
+let completed = {"1":false,"2":false,"3":false,"4":false,"5":false,"6":false};
+let state = { currentLevel: null, currentQ: 0, score: 0, answered: false, lastPassed: false };
+
+function startLevel(lvl) {
+  if (!LEVELS[lvl] || !unlocked[lvl]) return;
+  state.currentLevel = lvl; state.currentQ = 0; state.score = 0; state.answered = false;
+  document.getElementById('level-select').style.display = 'none';
+  document.getElementById('completion-banner').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('quiz-screen').style.display = 'block';
+  document.getElementById('quiz-level-label').textContent = `Nível ${lvl}`;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const level = LEVELS[state.currentLevel];
+  const q = level.questions[state.currentQ];
+  const total = level.questions.length;
+  state.answered = false;
+  document.getElementById('feedback-box').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('question-counter').textContent = `Pergunta ${state.currentQ + 1} de ${total}`;
+  document.getElementById('progress-fill').style.width = `${(state.currentQ / total) * 100}%`;
+  document.getElementById('question-text').textContent = q.q;
+  const list = document.getElementById('options-list');
+  list.innerHTML = '';
+  const letters = ['A','B','C','D'];
+  q.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="option-letter">${letters[i]}</span><span>${opt}</span>`;
+    btn.onclick = () => selectOption(i, btn);
+    list.appendChild(btn);
+  });
+}
+
+function selectOption(idx, btn) {
+  if (state.answered) return;
+  state.answered = true;
+  const q = LEVELS[state.currentLevel].questions[state.currentQ];
+  const allBtns = document.querySelectorAll('.option-btn');
+  allBtns.forEach(b => b.disabled = true);
+  const feedbackBox = document.getElementById('feedback-box');
+  if (idx === q.correct) {
+    state.score++;
+    btn.classList.add('correct');
+    feedbackBox.className = 'feedback-box correct';
+    document.getElementById('feedback-label').textContent = '✓ Correto';
+  } else {
+    btn.classList.add('wrong');
+    allBtns[q.correct].classList.add('reveal-correct');
+    feedbackBox.className = 'feedback-box wrong';
+    document.getElementById('feedback-label').textContent = '✗ Incorreto';
+  }
+  const normHtml = q.norm ? `<span class="feedback-norm">📌 Base: ${q.norm}</span>` : '';
+  document.getElementById('feedback-text').innerHTML = q.feedback + normHtml;
+  feedbackBox.style.display = 'block';
+  const nextBtn = document.getElementById('next-btn');
+  const isLast = state.currentQ === LEVELS[state.currentLevel].questions.length - 1;
+  nextBtn.textContent = isLast ? 'Ver resultado →' : 'Próxima pergunta →';
+  nextBtn.style.display = 'block';
+}
+
+function nextQuestion() {
+  state.currentQ++;
+  if (state.currentQ >= LEVELS[state.currentLevel].questions.length) showResult();
+  else renderQuestion();
+}
+
+function showResult() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'block';
+  const lvl = state.currentLevel;
+  const total = LEVELS[lvl].questions.length;
+  const pct = Math.round((state.score / total) * 100);
+  const passed = pct >= PASS;
+  state.lastPassed = passed;
+  document.getElementById('result-score').textContent = `${state.score}/${total}`;
+  document.getElementById('result-score-label').textContent = `${pct}% de acerto`;
+  let emoji, title, msg;
+  if (pct === 100) { emoji = '🏆'; title = 'Perfeito!'; msg = 'Gabaritou — distinção entre as abordagens contextuais na ponta da língua.'; }
+  else if (pct >= PASS) { emoji = '🎯'; title = 'Aprovado!'; msg = 'Sólido. Revise os itens que escaparam e siga em frente com confiança.'; }
+  else { emoji = '📖'; title = 'Revisar antes de continuar'; msg = `Abaixo de ${PASS}%. Revise o conteúdo deste nível e tente novamente — é preciso ${PASS}% para desbloquear o próximo.`; }
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-message').textContent = msg;
+
+  if (passed) {
+    completed[lvl] = true;
+    if (lvl < MAX_LEVEL) unlocked[lvl + 1] = true;
+  }
+  const nextBtn = document.getElementById('next-level-btn');
+  if (lvl >= MAX_LEVEL) {
+    nextBtn.textContent = passed ? 'Módulo concluído ✓' : 'Refazer para concluir';
+    nextBtn.disabled = passed;
+  } else {
+    nextBtn.textContent = 'Próximo nível →';
+    nextBtn.disabled = !passed;
+  }
+  updateLevelCards();
+}
+
+function updateLevelCards() {
+  for (let lvl = 1; lvl <= MAX_LEVEL; lvl++) {
+    const card = document.getElementById('card-' + lvl);
+    const status = document.getElementById('status-' + lvl);
+    card.classList.remove('completed', 'locked');
+    card.onclick = null;
+    if (completed[lvl]) {
+      card.classList.add('completed');
+      status.className = 'level-status done';
+      status.textContent = '✓ Concluído';
+      card.onclick = () => startLevel(lvl);
+    } else if (unlocked[lvl]) {
+      status.className = 'level-status available';
+      status.textContent = 'Disponível';
+      card.onclick = () => startLevel(lvl);
+    } else {
+      card.classList.add('locked');
+      status.className = 'level-status locked-txt';
+      status.textContent = '🔒 Bloqueado';
+    }
+  }
+}
+
+function retryLevel() { startLevel(state.currentLevel); }
+
+function goNextLevel() {
+  const next = state.currentLevel + 1;
+  if (next <= MAX_LEVEL && unlocked[next]) startLevel(next);
+  else backToMenu();
+}
+
+function backToMenu() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('result-screen').style.display = 'none';
+  document.getElementById('level-select').style.display = 'block';
+  updateLevelCards();
+  const allDone = Object.keys(completed).every(k => completed[k]);
+  document.getElementById('completion-banner').style.display = allDone ? 'block' : 'none';
+}
+</script>
+</body>
+</html>
