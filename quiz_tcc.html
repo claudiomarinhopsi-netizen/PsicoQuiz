@@ -139,6 +139,11 @@
   <div id="completion-banner">
     <h3>🎓 Módulo Concluído!</h3>
     <p>Você percorreu os 6 níveis da TCC — do modelo cognitivo de Beck às técnicas, às distinções entre abordagens e aos casos complexos.</p>
+  <div id="banner-cta" style="display:none; margin-top:18px; padding-top:18px; border-top:1px solid rgba(62,207,142,.25);">
+    <p style="font-size:14.5px; color:var(--text); line-height:1.6; margin-bottom:14px;">Gostou do formato? Este é 1 de 5 módulos. Há <strong>+220 questões</strong> de Psicopatologia, Terapias Contextuais, Avaliação Psicológica e Ética — acesso vitalício, atualizações inclusas.</p>
+    <a class="btn-primary" style="display:inline-block; text-decoration:none;" href="#">Liberar todos os módulos →</a>
+    <p style="font-size:12px; color:var(--text-dim); margin-top:10px;">Garantia de 7 dias · reembolso integral</p>
+  </div>
   </div>
 </div>
 
@@ -186,6 +191,10 @@
       <button class="btn-outline" onclick="retryLevel()">Tentar novamente</button>
       <button class="btn-primary" id="next-level-btn" onclick="goNextLevel()">Próximo nível →</button>
     </div>
+    <div id="result-cta" style="display:none; margin-top:26px; padding-top:20px; border-top:1px solid var(--border);">
+      <p style="font-size:13.5px; color:var(--text-dim); line-height:1.6; margin-bottom:12px;">📚 Este módulo grátis é 1 de 5 — o banco completo tem <strong style="color:var(--text);">280 questões</strong> com feedback explicativo em cada resposta.</p>
+      <a class="btn-outline" style="display:inline-block; text-decoration:none;" href="#">Conhecer a versão completa →</a>
+    </div>
   </div>
 </div>
 
@@ -205,6 +214,9 @@ const LEVEL_DESC = {"1":"Conceitos fundamentais","2":"Modelos e autores","3":"T�
 const MAX_LEVEL = 6;
 let unlocked = {"1":true,"2":false,"3":false,"4":false,"5":false,"6":false};
 let completed = {"1":false,"2":false,"3":false,"4":false,"5":false,"6":false};
+const SAVE_KEY = "pq_tcc_v1";
+function salvarProgresso(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify({c:completed})); }catch(e){} }
+(function(){ try{ const s = JSON.parse(localStorage.getItem(SAVE_KEY)||"null"); if(s&&s.c){ for(const k in completed){ if(s.c[k]){ completed[k]=true; unlocked[k]=true; const n=(+k)+1; if(n<=MAX_LEVEL) unlocked[n]=true; } } } }catch(e){} })();
 let state = { currentLevel: null, currentQ: 0, score: 0, answered: false, lastPassed: false };
 
 function startLevel(lvl) {
@@ -294,6 +306,7 @@ function showResult() {
   if (passed) {
     completed[lvl] = true;
     if (lvl < MAX_LEVEL) unlocked[lvl + 1] = true;
+    salvarProgresso();
   }
   const nextBtn = document.getElementById('next-level-btn');
   if (lvl >= MAX_LEVEL) {
@@ -364,6 +377,11 @@ function aplicarAcesso() {
   }
 }
 aplicarAcesso();
+updateLevelCards();
+if (MODO === "demo" && GRATIS_NA_DEMO && LINK_VENDA && LINK_VENDA !== "#") {
+  ["banner-cta","result-cta"].forEach(function(id){ var el = document.getElementById(id);
+    if (el) { el.style.display = "block"; el.querySelector("a").href = LINK_VENDA; } });
+}
 </script>
 <footer style="width:100%; max-width:720px; text-align:center; margin-top:40px; padding-top:18px; border-top:1px solid var(--border); font-size:12px; color:var(--text-dimmer); line-height:1.6;">
   Claudio Marinho de Albuquerque · CRP-02/20303
